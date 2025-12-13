@@ -315,6 +315,24 @@ app.get('/api/proxy-image', async (req, res) => {
     }
 });
 
+// Serve static frontend files in production
+if (process.env.NODE_ENV === 'production') {
+    const frontendPath = path.join(__dirname, '..', 'dist');
+    
+    // Serve static files from the React app build
+    app.use(express.static(frontendPath));
+    
+    // Handle React routing - send all non-API requests to index.html
+    app.get('*', (req, res) => {
+        // Only serve index.html for non-API routes
+        if (!req.path.startsWith('/api')) {
+            res.sendFile(path.join(frontendPath, 'index.html'));
+        }
+    });
+    
+    console.log('Serving frontend from:', frontendPath);
+}
+
 // Global error handler
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
@@ -325,3 +343,4 @@ process.on('uncaughtException', (err) => {
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+

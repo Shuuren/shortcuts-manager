@@ -1,38 +1,18 @@
-# Render Blueprint - https://render.com/docs/blueprint-spec
-# This file defines the infrastructure for your Shortcuts Manager application
+# Render Blueprint - Single Service Deployment
+# Frontend + Backend served together from one web service
 
 services:
-  # Backend API Server
   - type: web
-    name: shortcuts-manager-api
+    name: shortcuts-manager
     runtime: node
-    region: oregon
-    rootDir: server
-    buildCommand: npm install
-    startCommand: npm start
+    region: singapore
+    buildCommand: npm install && npm run build && cd server && npm install
+    startCommand: cd server && npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
-        sync: false # You'll set this in Render dashboard
+        sync: false # Set this in Render dashboard
       - key: MONGODB_URI
-        sync: false # You'll set this in Render dashboard
+        sync: false # Set this in Render dashboard
     healthCheckPath: /api/health
-
-  # Frontend Static Site
-  - type: web
-    name: shortcuts-manager-frontend
-    runtime: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: public, max-age=31536000
-      - path: /index.html
-        name: Cache-Control
-        value: no-cache
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html

@@ -1,7 +1,8 @@
 // API Configuration
-// In development, uses localhost. In production, uses the VITE_API_URL environment variable.
+// In development, uses localhost. In production (same origin), uses empty string.
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// When frontend and backend are served from the same origin, we don't need an absolute URL
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 export const API_BASE = `${API_URL}/api/shortcuts`;
 export const AUTH_API_BASE = `${API_URL}/api/auth`;
