@@ -1,0 +1,876 @@
+{
+  "meta": {
+    "project": "Shortcuts Manager",
+    "date": "2025-12-10",
+    "prepared_by": "Software Development Manager"
+  },
+  "product_overview": "Shortcuts Manager is a web application designed to help users efficiently manage keyboard shortcuts across multiple platforms including LeaderKey, Raycast, and system-level shortcuts. It offers a user-friendly interface to organize, search, edit, and export shortcuts, facilitating productivity improvements for different types of users including admins, demo users, and clients.",
+  "core_goals": [
+    "Enable users to register and authenticate securely with JWT-based sessions.",
+    "Provide role-based access control to manage and view shortcut data according to user roles (admin, demo, client, guest).",
+    "Allow admins and demo users to create, update, and delete shortcuts, groups, and applications.",
+    "Support multiple shortcut types (LeaderKey, Raycast, System) with rich metadata and organizational grouping.",
+    "Offer a responsive UI with features such as global search, theming, modals, undo/redo, and export capabilities.",
+    "Maintain data integrity and isolate demo user data from the main production database.",
+    "Enable smooth, secure, and performant backend operations with Express.js and optionally MongoDB or JSON file storage."
+  ],
+  "key_features": [
+    "User Registration allowing new users to sign up with username, password, and display name, assigned the 'client' role by default.",
+    "User Login system that authenticates users and issues JWT tokens for secure API requests.",
+    "Profile Management enabling users to view and update their profile information, including password changes with validation.",
+    "Role-Based Data Access: Admin users work with the primary shortcuts database, demo users operate in a sandbox demo database, and clients see empty datasets.",
+    "Comprehensive CRUD operations for shortcuts, groups, and apps with role-based permission enforcement ensuring only authorized users can modify data.",
+    "Shortcut Types Supported include LeaderKey shortcuts, Raycast shortcuts, and System shortcuts, each with specific attributes and grouping.",
+    "Image Proxy API endpoint to fetch external app icons bypassing CORS restrictions.",
+    "Frontend features such as search bar, modals, profile dropdown, export manager, image editing, and undo/redo functionality.",
+    "Use of JWT tokens stored in localStorage for maintaining user sessions and secure communication.",
+    "Role-specific datasets returned from backend APIs to maintain security and proper access controls."
+  ],
+  "user_flow_summary": [
+    "User visits site and optionally registers a new account with username, password, and display name.",
+    "User logs in using the login form providing valid credentials, receiving a JWT token stored locally for session persistence.",
+    "Authenticated users can view their profile details and update display name or password securely.",
+    "Based on user role, the system fetches different shortcut datasets: admin users get full datasets, demo users get a sandbox dataset, clients get empty datasets, and guests see demo data in read-only mode.",
+    "Authorized users (admin/demo) can create new shortcuts, groups, and apps by filling out forms.",
+    "Users can edit existing shortcuts, groups, and apps, submitting updates securely.",
+    "Users with proper roles can delete shortcuts, groups, and apps, receiving success confirmations.",
+    "Users can search through shortcuts globally, toggle themes, and use undo/redo keyboard shortcuts for change management.",
+    "Users can export shortcuts to Markdown format via the export manager UI component.",
+    "App fetches app icons through an image proxy API to display external images without CORS issues."
+  ],
+  "validation_criteria": [
+    "User registration requires unique usernames; duplicate usernames trigger validation errors.",
+    "Login fails with proper HTTP status when credentials are invalid.",
+    "JWT tokens are issued upon successful login and are validated on all secured API routes.",
+    "Profile updates require the current password when changing the password and respond with appropriate errors for invalid credentials.",
+    "Users receive role-appropriate datasets ensuring no unauthorized data leakage between roles.",
+    "CRUD operations succeed only if the authenticated user has admin or demo role; unauthorized attempts return 403 Forbidden.",
+    "Data operations persist correctly to the appropriate JSON files (db.json or demo_db.json) depending on user role.",
+    "Image proxy fetches and returns images correctly with valid URL parameters and handles errors gracefully.",
+    "Frontend UI updates dynamically upon data changes and reflects proper modal states, search filtering, theme toggles, and history management.",
+    "Undo and redo actions respond correctly to keyboard shortcuts (Cmd+Z and Cmd+Shift+Z) and update the application state accordingly."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "JavaScript",
+      "React",
+      "Express.js",
+      "MongoDB",
+      "JSON",
+      "JWT",
+      "bcryptjs",
+      "Vite",
+      "TailwindCSS",
+      "Framer Motion"
+    ],
+    "features": [
+      {
+        "name": "User Registration",
+        "description": "Register a new user account with username, password, and display name. New users are assigned 'client' role by default.",
+        "files": [
+          "server/routes/auth.js",
+          "server/models/User.js"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/auth/register": {
+              "post": {
+                "summary": "Register a new user",
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "username": {
+                            "type": "string",
+                            "description": "Username (will be lowercased)"
+                          },
+                          "password": {
+                            "type": "string",
+                            "description": "User password"
+                          },
+                          "displayName": {
+                            "type": "string",
+                            "description": "Display name (optional, defaults to username)"
+                          }
+                        },
+                        "required": [
+                          "username",
+                          "password"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "201": {
+                    "description": "User created successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "user": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "username": {
+                                  "type": "string"
+                                },
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "client"
+                                  ]
+                                }
+                              }
+                            },
+                            "token": {
+                              "type": "string",
+                              "description": "JWT token"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "description": "Username already exists"
+                  },
+                  "500": {
+                    "description": "Failed to register user"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "User Login",
+        "description": "Authenticate user with username and password. Returns JWT token for subsequent API requests.",
+        "files": [
+          "server/routes/auth.js",
+          "server/models/User.js",
+          "server/middleware/auth.js"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/auth/login": {
+              "post": {
+                "summary": "Login user",
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          },
+                          "password": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "username",
+                          "password"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Login successful",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "user": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "username": {
+                                  "type": "string"
+                                },
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "admin",
+                                    "demo",
+                                    "client"
+                                  ]
+                                }
+                              }
+                            },
+                            "token": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "401": {
+                    "description": "Invalid username or password"
+                  },
+                  "500": {
+                    "description": "Failed to login"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Get User Profile",
+        "description": "Get current authenticated user's profile information.",
+        "files": [
+          "server/routes/auth.js",
+          "server/middleware/auth.js"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/auth/me": {
+              "get": {
+                "summary": "Get current user profile",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "User profile",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "username": {
+                              "type": "string"
+                            },
+                            "displayName": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "404": {
+                    "description": "User not found"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Update User Profile",
+        "description": "Update current user's display name and/or password.",
+        "files": [
+          "server/routes/auth.js",
+          "server/middleware/auth.js"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/auth/me": {
+              "put": {
+                "summary": "Update user profile",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "displayName": {
+                            "type": "string"
+                          },
+                          "currentPassword": {
+                            "type": "string",
+                            "description": "Required when changing password"
+                          },
+                          "newPassword": {
+                            "type": "string",
+                            "description": "New password"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Profile updated",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "user": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "username": {
+                                  "type": "string"
+                                },
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "role": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "token": {
+                              "type": "string",
+                              "description": "New JWT token"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "description": "Current password required to change password"
+                  },
+                  "401": {
+                    "description": "Current password is incorrect"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Get All Shortcuts",
+        "description": "Get all shortcuts, groups, and apps based on user role. Admin sees db.json, demo/guest sees demo_db.json, client sees empty data.",
+        "files": [
+          "server/index.js"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/shortcuts": {
+              "get": {
+                "summary": "Get all shortcuts data",
+                "description": "Returns different data based on authentication status and user role. Guest/demo users see demo_db.json, admin sees db.json, client users see empty arrays.",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Shortcuts data",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "leaderShortcuts": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/LeaderShortcut"
+                              }
+                            },
+                            "raycastShortcuts": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/RaycastShortcut"
+                              }
+                            },
+                            "systemShortcuts": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/SystemShortcut"
+                              }
+                            },
+                            "leaderGroups": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Group"
+                              }
+                            },
+                            "appsLibrary": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/App"
+                              }
+                            },
+                            "apps": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/App"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "500": {
+                    "description": "Failed to retrieve data"
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "schemas": {
+              "LeaderShortcut": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "sequence": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "app": {
+                    "type": "string"
+                  },
+                  "action": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "appId": {
+                    "type": "string"
+                  }
+                }
+              },
+              "RaycastShortcut": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "action": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "modifiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "group": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              },
+              "SystemShortcut": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "action": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "modifiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "group": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              },
+              "Group": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "type": "string"
+                  },
+                  "color": {
+                    "type": "string"
+                  }
+                }
+              },
+              "App": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "description": "Base64-encoded image"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "linkedShortcuts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "securitySchemes": {
+              "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Create Shortcut/Group/App",
+        "description": "Create a new shortcut, group, or app. Only admin and demo users can create items. Type parameter determines the collection: shortcuts, groups, apps, leaderShortcuts, raycastShortcuts, systemShortcuts, leaderGroups, raycastGroups, systemGroups.",
+        "files": [
+          "server/index.js"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/shortcuts/{type}": {
+              "post": {
+                "summary": "Create a new item",
+                "description": "Creates a new shortcut, group, or app based on the type parameter. Admin users write to db.json, demo users write to demo_db.json.",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "type",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                      "type": "string",
+                      "enum": [
+                        "shortcuts",
+                        "groups",
+                        "apps",
+                        "leaderShortcuts",
+                        "raycastShortcuts",
+                        "systemShortcuts",
+                        "leaderGroups",
+                        "raycastGroups",
+                        "systemGroups"
+                      ]
+                    },
+                    "description": "Type of item to create"
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "description": "Item data (id is auto-generated if missing)"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Item created successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  },
+                  "403": {
+                    "description": "Not authorized to create items (only admin/demo can create)"
+                  },
+                  "500": {
+                    "description": "Failed to save item"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Update Shortcut/Group/App",
+        "description": "Update an existing shortcut, group, or app by ID. Only admin and demo users can update items.",
+        "files": [
+          "server/index.js"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/shortcuts/{type}/{id}": {
+              "put": {
+                "summary": "Update an item",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "type",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                      "type": "string",
+                      "enum": [
+                        "shortcuts",
+                        "groups",
+                        "apps",
+                        "leaderShortcuts",
+                        "raycastShortcuts",
+                        "systemShortcuts",
+                        "leaderGroups",
+                        "raycastGroups",
+                        "systemGroups"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "description": "Updated item data"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Item updated successfully"
+                  },
+                  "400": {
+                    "description": "Invalid type or collection missing"
+                  },
+                  "403": {
+                    "description": "Not authorized to update items"
+                  },
+                  "404": {
+                    "description": "Item not found"
+                  },
+                  "500": {
+                    "description": "Failed to update item"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Delete Shortcut/Group/App",
+        "description": "Delete a shortcut, group, or app by ID. Only admin and demo users can delete items.",
+        "files": [
+          "server/index.js"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/shortcuts/{type}/{id}": {
+              "delete": {
+                "summary": "Delete an item",
+                "security": [
+                  {
+                    "bearerAuth": []
+                  }
+                ],
+                "parameters": [
+                  {
+                    "name": "type",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                      "type": "string",
+                      "enum": [
+                        "shortcuts",
+                        "groups",
+                        "apps",
+                        "leaderShortcuts",
+                        "raycastShortcuts",
+                        "systemShortcuts",
+                        "leaderGroups",
+                        "raycastGroups",
+                        "systemGroups"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Item deleted successfully",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "success": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "description": "Invalid type"
+                  },
+                  "403": {
+                    "description": "Not authorized to delete items"
+                  },
+                  "500": {
+                    "description": "Failed to delete item"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Image Proxy",
+        "description": "Proxy endpoint to fetch external images and bypass CORS restrictions. Used for fetching app icons from external URLs.",
+        "files": [
+          "server/index.js"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/proxy-image": {
+              "get": {
+                "summary": "Proxy external image",
+                "parameters": [
+                  {
+                    "name": "url",
+                    "in": "query",
+                    "required": true,
+                    "schema": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "description": "URL of the image to proxy"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Image data",
+                    "content": {
+                      "image/*": {
+                        "schema": {
+                          "type": "string",
+                          "format": "binary"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "description": "URL parameter is required"
+                  },
+                  "500": {
+                    "description": "Failed to fetch image"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

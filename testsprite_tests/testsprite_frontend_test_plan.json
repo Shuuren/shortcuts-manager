@@ -1,0 +1,658 @@
+[
+  {
+    "id": "TC001",
+    "title": "User Registration with unique username",
+    "description": "Verify that a new user can register with a unique username, password, and optional display name, and receives a client role by default.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to user registration endpoint"
+      },
+      {
+        "type": "action",
+        "description": "Submit registration form with unique username, valid password, and display name"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 201 Created"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response JSON contains user object with client role"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify JWT token is returned"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "User Registration with duplicate username",
+    "description": "Verify that registration fails when submitting a username that already exists in the system.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to user registration endpoint"
+      },
+      {
+        "type": "action",
+        "description": "Submit registration form with existing username"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 400 Bad Request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error message indicates username already exists"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "User Login with valid credentials",
+    "description": "Verify that a registered user can log in with valid username and password and receive a JWT token.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login endpoint"
+      },
+      {
+        "type": "action",
+        "description": "Submit login form with correct username and password"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response includes user info with correct role"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify JWT token is returned"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "User Login with invalid credentials",
+    "description": "Verify that login fails with incorrect username or password and proper error status is returned.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login endpoint"
+      },
+      {
+        "type": "action",
+        "description": "Submit login form with invalid username or password"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 401 Unauthorized"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error message indicates invalid credentials"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Get user profile with valid JWT",
+    "description": "Verify that authenticated user can retrieve their profile details using a valid JWT token.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform login to obtain valid JWT token"
+      },
+      {
+        "type": "action",
+        "description": "Send GET request to /api/auth/me with Authorization header containing valid JWT"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify returned profile contains correct username, displayName, and role"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Update user profile display name only",
+    "description": "Verify authenticated user can update their display name without changing password.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Obtain valid JWT token via login"
+      },
+      {
+        "type": "action",
+        "description": "Send PUT request to /api/auth/me with new displayName, without password fields, and Authorization header"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updated user object reflects new displayName"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Update user password with correct current password",
+    "description": "Verify that user can update password by providing correct current password and new password.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Obtain valid JWT token via login"
+      },
+      {
+        "type": "action",
+        "description": "Send PUT request to /api/auth/me with currentPassword and newPassword fields and Authorization header"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updated user object returned with new JWT token"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Update user password with missing currentPassword",
+    "description": "Verify that update fails with error when changing password without providing currentPassword.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Obtain valid JWT token via login"
+      },
+      {
+        "type": "action",
+        "description": "Send PUT request to /api/auth/me with newPassword but without currentPassword"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 400 Bad Request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error message indicates current password is required"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Update user password with incorrect currentPassword",
+    "description": "Verify that update fails with error when currentPassword is incorrect.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Obtain valid JWT token via login"
+      },
+      {
+        "type": "action",
+        "description": "Send PUT request to /api/auth/me with incorrect currentPassword and newPassword"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 401 Unauthorized"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error message indicates current password is incorrect"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Get shortcuts data as admin user",
+    "description": "Verify that an authenticated admin user receives full shortcuts data from primary database.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in as admin user to obtain JWT token"
+      },
+      {
+        "type": "action",
+        "description": "Send GET request to /api/shortcuts with Authorization header"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains leaderShortcuts, raycastShortcuts, systemShortcuts, leaderGroups, and apps arrays with data"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Get shortcuts data as demo user",
+    "description": "Verify demo user receives shortcuts data from demo sandbox database.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in as demo user to obtain JWT token"
+      },
+      {
+        "type": "action",
+        "description": "Send GET request to /api/shortcuts with Authorization header"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains sandbox demo data arrays"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Get shortcuts data as client user",
+    "description": "Verify client user receives empty datasets for all shortcut and app collections.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in as client user to obtain JWT token"
+      },
+      {
+        "type": "action",
+        "description": "Send GET request to /api/shortcuts with Authorization header"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response returns empty arrays for all shortcut and app collections"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Get shortcuts data as guest user unauthenticated",
+    "description": "Verify that unauthenticated (guest) users receive demo data in read-only mode.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /api/shortcuts without authentication"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response contains demo sandbox data"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Create shortcut as admin user",
+    "description": "Verify that an admin user can create a new shortcut and receives success confirmation.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin to obtain JWT token"
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/shortcuts/shortcuts with shortcut data and Authorization header"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response confirms creation of shortcut with generated id"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Create group as demo user",
+    "description": "Verify demo user can create a new group successfully in sandbox database.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as demo user to obtain JWT token"
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/shortcuts/groups with group data and Authorization header"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify group is created with assigned id"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Create app as client user forbidden",
+    "description": "Verify client users cannot create shortcuts, groups, or apps and receive 403 Forbidden.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as client user to obtain JWT token"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to create app by POST to /api/shortcuts/apps with Authorization header"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 403 Forbidden"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Update shortcut as admin user",
+    "description": "Verify admin user can update existing shortcut by ID and receives success status.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin to obtain JWT token"
+      },
+      {
+        "type": "action",
+        "description": "Send PUT request to /api/shortcuts/shortcuts/{id} with updated shortcut data and Authorization header"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Update non-existent shortcut returns 404",
+    "description": "Verify update fails with 404 Not Found when shortcut ID does not exist.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin user"
+      },
+      {
+        "type": "action",
+        "description": "Send PUT request to /api/shortcuts/shortcuts/nonexistentid with data"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 404 Not Found"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Update shortcut as client user forbidden",
+    "description": "Verify that client users cannot update any shortcuts and receive 403 Forbidden.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as client user"
+      },
+      {
+        "type": "action",
+        "description": "Attempt PUT request to update shortcut"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 403 Forbidden"
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Delete group as demo user",
+    "description": "Verify demo user can delete a group successfully by ID.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as demo user"
+      },
+      {
+        "type": "action",
+        "description": "Send DELETE request to /api/shortcuts/groups/{id} with valid id and Authorization header"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK and success flag is true"
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Delete app as client user forbidden",
+    "description": "Verify client users are forbidden from deleting apps and receive 403 Forbidden response.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as client user"
+      },
+      {
+        "type": "action",
+        "description": "Send DELETE request to /api/shortcuts/apps/{id}"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 403 Forbidden"
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "Delete non-existent shortcut returns 404",
+    "description": "Confirm deleting a shortcut with invalid ID returns a 404 Not Found.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin user"
+      },
+      {
+        "type": "action",
+        "description": "Send DELETE request to /api/shortcuts/shortcuts/nonexistentid"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 404 Not Found"
+      }
+    ]
+  },
+  {
+    "id": "TC023",
+    "title": "Image proxy returns image data for valid URL",
+    "description": "Verify that image proxy endpoint returns image binary data when provided a valid external image URL.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /api/proxy-image with valid image URL parameter"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 200 OK"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify content-type header indicates image content"
+      }
+    ]
+  },
+  {
+    "id": "TC024",
+    "title": "Image proxy returns 400 error when URL missing",
+    "description": "Verify that the image proxy endpoint returns 400 Bad Request when the URL query parameter is missing.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /api/proxy-image without URL parameter"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 400 Bad Request"
+      }
+    ]
+  },
+  {
+    "id": "TC025",
+    "title": "Image proxy returns 500 error when external fetch fails",
+    "description": "Verify that if fetching external image fails, the proxy returns 500 Internal Server Error.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /api/proxy-image with invalid or unreachable image URL"
+      },
+      {
+        "type": "assertion",
+        "description": "Check response status is 500 Internal Server Error"
+      }
+    ]
+  },
+  {
+    "id": "TC026",
+    "title": "Frontend search filtering functionality",
+    "description": "Verify the global search bar filters displayed shortcuts correctly according to input.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Load frontend UI with populated shortcut data"
+      },
+      {
+        "type": "action",
+        "description": "Enter a search keyword into the search bar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that displayed shortcut items are filtered to match the search keyword"
+      }
+    ]
+  },
+  {
+    "id": "TC027",
+    "title": "Undo and redo keyboard shortcuts functionality",
+    "description": "Verify that pressing Cmd+Z performs undo and Cmd+Shift+Z performs redo, with application state updating accordingly.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform an editable action such as creating or updating a shortcut"
+      },
+      {
+        "type": "action",
+        "description": "Press Cmd+Z keyboard shortcut"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that the last action is undone and UI state reflects the change"
+      },
+      {
+        "type": "action",
+        "description": "Press Cmd+Shift+Z keyboard shortcut"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that the undone action is reapplied and UI updates accordingly"
+      }
+    ]
+  },
+  {
+    "id": "TC028",
+    "title": "Theme toggle updates UI correctly",
+    "description": "Verify that toggling the theme changes UI appearance accordingly and persists state correctly.",
+    "category": "ui",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Toggle theme switch/button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify UI reflects selected theme styles"
+      },
+      {
+        "type": "action",
+        "description": "Refresh page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify previously selected theme persists after reload"
+      }
+    ]
+  }
+]

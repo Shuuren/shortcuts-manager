@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light Mode default */
+    --bg-app: #f3f4f6; /* gray-100 */
+    --text-primary: #171717; /* neutral-900 */
+    --text-secondary: rgba(0, 0, 0, 0.85); /* Darker for better visibility */
+    --text-muted: rgba(0, 0, 0, 0.65);
+    
+    --glass-bg: rgba(255, 255, 255, 0.9); /* Opaque enough to hide busy backgrounds */
+    --glass-bg-hover: rgba(255, 255, 255, 1);
+    --glass-border: rgba(0, 0, 0, 0.15); 
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    
+    --input-bg: rgba(0, 0, 0, 0.05);
+    --input-border: rgba(0, 0, 0, 0.15);
+    --input-focus-border: rgba(0, 0, 0, 0.3);
+
+    /* New Semantic Surfaces for Keys/Tags */
+    --surface-highlight: rgba(0, 0, 0, 0.08); /* Visible grey for keys in light mode */
+    --surface-highlight-hover: rgba(0, 0, 0, 0.12);
+    --surface-border-strong: rgba(0, 0, 0, 0.2); 
+    
+    --accent-blue: #006be6; /* Slightly darker for contrast on light */
+    --accent-purple: #9f42ce;
+    --accent-orange: #ea8900;
+    
+    /* Solid card background for dropdowns and popovers */
+    --bg-card: #ffffff;
+  }
+
+  .dark {
+    /* Dark Mode overrides */
+    --bg-app: #000000; /* True black */
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.8);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    
+    /* Dark mode glass: Lighter than background (Black) but still dark */
+    --glass-bg: rgba(28, 28, 30, 0.65); 
+    --glass-bg-hover: rgba(44, 44, 46, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    
+    --input-bg: rgba(255, 255, 255, 0.1);
+    --input-border: rgba(255, 255, 255, 0.15);
+    --input-focus-border: rgba(255, 255, 255, 0.3);
+
+    /* Surface for keys: bright enough to stand out from glass */
+    --surface-highlight: rgba(255, 255, 255, 0.12); 
+    --surface-highlight-hover: rgba(255, 255, 255, 0.18);
+    --surface-border-strong: rgba(255, 255, 255, 0.2); 
+    
+    --accent-blue: #2997ff;
+    --accent-purple: #bf5af2;
+    --accent-orange: #ff9500;
+    
+    /* Solid card background for dropdowns and popovers */
+    --bg-card: #1c1c1e; /* Solid dark grey */
+  }
+
+  body {
+    @apply min-h-screen selection:bg-blue-500/30 transition-colors duration-300;
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply backdrop-blur-xl shadow-lg rounded-2xl border transition-colors duration-300;
+    background-color: var(--glass-bg);
+    border-color: var(--glass-border);
+  }
+  
+  .glass-card {
+    @apply backdrop-blur-md shadow-md rounded-xl transition-all duration-200 border;
+    background-color: var(--glass-bg);
+    border-color: var(--glass-border);
+  }
+
+  .glass-card:hover {
+    background-color: var(--glass-bg-hover);
+  }
+
+  .glass-button {
+    @apply px-4 py-2 rounded-lg active:scale-95 transition-all text-sm font-medium border backdrop-blur-sm;
+    background-color: var(--glass-bg);
+    border-color: var(--glass-border);
+    color: var(--text-primary);
+  }
+  
+  .glass-button:hover {
+    background-color: var(--glass-bg-hover);
+  }
+
+  .input-search {
+    @apply rounded-xl px-4 py-2 outline-none transition-all w-full backdrop-blur-sm border;
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+    color: var(--text-primary);
+  }
+  
+  .input-search::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+  }
+  
+  .input-search:focus {
+    border-color: var(--input-focus-border);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); /* blue-500/20 */
+  }
+
+  /* Custom scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-secondary) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--text-muted);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-secondary);
+  }
+
+  /* Highlight Pulse Animation */
+  @keyframes highlight-pulse-animation {
+    0% {
+      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+      background-color: rgba(59, 130, 246, 0.2);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+      background-color: rgba(59, 130, 246, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+      background-color: transparent;
+    }
+  }
+
+  .highlight-pulse {
+    position: relative;
+    z-index: 50;
+    animation: highlight-pulse-animation 2s cubic-bezier(0.4, 0, 0.6, 1) 1; /* Run once */
+    border-radius: 0.75rem; /* rounded-xl */
+  }
+}
+

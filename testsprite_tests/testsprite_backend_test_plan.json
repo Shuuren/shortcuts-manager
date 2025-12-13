@@ -1,0 +1,47 @@
+[
+  {
+    "id": "TC001",
+    "title": "user registration with unique username",
+    "description": "Test the /api/auth/register endpoint to ensure a new user can register with a unique username, password, and optional display name. Verify that the user is assigned the 'client' role by default and a JWT token is returned. Also test that duplicate usernames return a 400 error."
+  },
+  {
+    "id": "TC002",
+    "title": "user login with valid credentials",
+    "description": "Test the /api/auth/login endpoint to verify that users can log in with valid username and password, receiving a JWT token and user details including role. Verify that invalid credentials return a 401 error."
+  },
+  {
+    "id": "TC003",
+    "title": "get authenticated user profile",
+    "description": "Test the /api/auth/me GET endpoint to retrieve the current authenticated user's profile information. Verify that the endpoint requires a valid JWT token and returns 404 if the user is not found."
+  },
+  {
+    "id": "TC004",
+    "title": "update user profile with password validation",
+    "description": "Test the /api/auth/me PUT endpoint to update the user's display name and/or password. Verify that changing the password requires the current password and returns 400 if missing or 401 if incorrect. Confirm that a new JWT token is issued upon successful update."
+  },
+  {
+    "id": "TC005",
+    "title": "get all shortcuts data based on user role",
+    "description": "Test the /api/shortcuts GET endpoint to ensure it returns the correct shortcuts, groups, and apps data based on the authenticated user's role: admin users receive full db.json data, demo and guest users receive demo_db.json data, and client users receive empty arrays."
+  },
+  {
+    "id": "TC006",
+    "title": "create new shortcut group or app with authorization",
+    "description": "Test the /api/shortcuts/{type} POST endpoint to create new shortcuts, groups, or apps. Verify that only admin and demo users can create items and that the type parameter correctly determines the collection. Unauthorized users should receive a 403 error."
+  },
+  {
+    "id": "TC007",
+    "title": "update existing shortcut group or app with authorization",
+    "description": "Test the /api/shortcuts/{type}/{id} PUT endpoint to update existing shortcuts, groups, or apps by ID. Verify that only admin and demo users can update items, invalid types return 400, and non-existent items return 404."
+  },
+  {
+    "id": "TC008",
+    "title": "delete shortcut group or app with authorization",
+    "description": "Test the /api/shortcuts/{type}/{id} DELETE endpoint to delete shortcuts, groups, or apps by ID. Verify that only admin and demo users can delete items, invalid types return 400, and unauthorized attempts return 403."
+  },
+  {
+    "id": "TC009",
+    "title": "proxy external image with valid url",
+    "description": "Test the /api/proxy-image GET endpoint to fetch external images by providing a valid URL query parameter. Verify that the image data is returned correctly and that missing URL parameters return a 400 error."
+  }
+]
