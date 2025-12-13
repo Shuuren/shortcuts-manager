@@ -322,11 +322,13 @@ if (process.env.NODE_ENV === 'production') {
     // Serve static files from the React app build
     app.use(express.static(frontendPath));
     
-    // Handle React routing - send all non-API requests to index.html
-    app.get('*', (req, res) => {
-        // Only serve index.html for non-API routes
-        if (!req.path.startsWith('/api')) {
+    // Handle React routing - use middleware for catch-all (Express 5 compatible)
+    app.use((req, res, next) => {
+        // Only serve index.html for non-API routes that aren't already handled
+        if (!req.path.startsWith('/api') && req.method === 'GET') {
             res.sendFile(path.join(frontendPath, 'index.html'));
+        } else {
+            next();
         }
     });
     
