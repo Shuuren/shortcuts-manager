@@ -6,7 +6,7 @@ services:
     name: shortcuts-manager
     runtime: node
     region: singapore
-    buildCommand: npm install && npm run build && cd server && npm install
+    buildCommand: npm ci && npm run build && cd server && npm ci --omit=dev
     startCommand: cd server && npm start
     envVars:
       - key: NODE_ENV
