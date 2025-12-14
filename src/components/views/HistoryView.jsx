@@ -116,61 +116,48 @@ const HistoryEntry = memo(function HistoryEntry({ entry, onRevert, onReapply, on
   const changedFields = (entry.action === 'update' || entry.action === 'revert') ? getChangedFields() : [];
 
   return (
-    <div className="relative group">
-      {/* Swipe Background */}
-      <div className="absolute inset-0 bg-red-500/10 rounded-xl flex items-center justify-end px-6 pointer-events-none">
-        <Trash2 className="text-red-500" size={20} />
-      </div>
+    <div className="relative group flex items-stretch gap-2 mb-3">
+      {/* External Delete Button (Left side) */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(entry.id);
+        }}
+        className="w-12 flex-shrink-0 bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 text-[var(--text-muted)] rounded-xl flex items-center justify-center transition-all active:scale-95 touch-manipulation"
+        title="Delete Entry"
+      >
+        <X size={20} className="stroke-[2.5]" />
+      </button>
 
+      {/* Main Card */}
       <motion.div
         layout
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={{ left: 0.7, right: 0 }} // Allow more pull to the left
-        onDragEnd={(e, { offset }) => {
-          if (offset.x < -100) {
-            onDelete(entry.id);
-          }
-        }}
-        whileDrag={{ scale: 1.02, cursor: 'grabbing' }}
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        onClick={() => setIsExpanded(!isExpanded)}
         className={`
-          glass-card overflow-hidden border-l-4 relative z-10 bg-[var(--glass-bg)]
+          flex-1 glass-card overflow-hidden border-l-4 relative cursor-pointer active:scale-[0.99] transition-transform
           ${entry.isCurrent ? 'ring-2 ring-blue-500/50' : ''}
-          ${entry.isReverted ? 'opacity-60 bg-amber-500/5' : ''}
+          ${entry.isReverted ? 'opacity-75 bg-amber-500/5' : ''}
           ${entry.action === 'create' ? 'border-l-emerald-500' : ''}
           ${entry.action === 'update' ? 'border-l-blue-500' : ''}
           ${entry.action === 'delete' ? 'border-l-red-500' : ''}
           ${entry.action === 'revert' ? 'border-l-amber-500' : ''}
         `}
       >
-        {/* Header */}
-        <div 
-          className="p-4 flex items-center gap-3 cursor-pointer hover:bg-[var(--glass-bg-hover)] transition-colors"
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          {/* Delete button (Moved to Left) */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(entry.id);
-            }}
-            className="p-1.5 -ml-1 text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0"
-            title="Remove entry"
-          >
-            <X size={16} />
-          </button>
-
-          {/* Action badge */}
+        {/* Card Header Content */}
+        <div className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
+            
+          {/* Left Icon Badge */}
           <div className={`
-            w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+            w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex-shrink-0 flex items-center justify-center
             bg-gradient-to-br ${ACTION_COLORS[entry.action]}
+            shadow-sm self-center
           `}>
             {entry.action === 'delete' ? (
               <Trash2 size={18} className="text-white" />
             ) : entry.action === 'create' ? (
-              <span className="text-white font-bold">+</span>
+              <span className="text-white font-bold text-lg">+</span>
             ) : entry.action === 'revert' ? (
               <Undo2 size={18} className="text-white" />
             ) : (
@@ -178,73 +165,82 @@ const HistoryEntry = memo(function HistoryEntry({ entry, onRevert, onReapply, on
             )}
           </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
+          {/* Middle Content */}
+          <div className="flex-1 min-w-0 flex flex-col gap-1">
+            {/* Type Label */}
+            <div className="flex items-center gap-1.5 overflow-hidden text-xs text-[var(--text-muted)]">
+              <TypeIcon size={12} />
+              <span className="truncate">{TYPE_LABELS[entry.entityType] || entry.entityType}</span>
+            </div>
+
+            {/* Name & Status */}
+            <div className="flex items-center gap-2 flex-wrap">
               <span className={`
-                text-xs font-medium px-2 py-0.5 rounded-full
+                text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-md
                 bg-gradient-to-r ${ACTION_COLORS[entry.action]} text-white
               `}>
                 {entry.isReverted ? 'Reverted' : ACTION_LABELS[entry.action]}
               </span>
-              <TypeIcon size={14} className="text-[var(--text-muted)]" />
-              <span className="text-xs text-[var(--text-muted)]">
-                {TYPE_LABELS[entry.entityType] || entry.entityType}
+              <span className="font-semibold text-[var(--text-primary)] text-sm truncate max-w-full">
+                 {entry.entityName || entry.after?.name || entry.before?.name || entry.entityId}
               </span>
             </div>
-            <div className="font-medium text-[var(--text-primary)] truncate mt-1">
-              {entry.entityName || entry.after?.name || entry.before?.name || entry.entityId}
-            </div>
+
+             {/* Changes summary */}
             {(entry.action === 'update' || entry.action === 'revert') && changedFields.length > 0 && (
-              <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                Changed: {changedFields.map(c => c.field).join(', ')}
+              <div className="text-xs text-[var(--text-muted)] truncate">
+                <span className="opacity-70">Modified: </span> 
+                {changedFields.map(c => c.field).join(', ')}
               </div>
             )}
           </div>
 
-          {/* Timestamp */}
-          <div className="text-right flex-shrink-0">
-            <div className="text-sm text-[var(--text-secondary)] flex items-center gap-1">
-              <Clock size={12} />
-              {formatTimestamp(entry.timestamp)}
+          {/* Right Section: Time & Action Button */}
+          <div className="flex flex-col items-end gap-1.5 sm:gap-2 self-center flex-shrink-0">
+            {/* Timestamp */}
+            <div className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                <Clock size={11} />
+                <span>{formatTimestamp(entry.timestamp)}</span>
             </div>
-            <div className="text-xs text-[var(--text-muted)] hidden sm:block">
-              {formatTime(entry.timestamp)}
+
+            {/* Revert/Re-apply Button (Under Time) */}
+            <div>
+              {entry.canReapply ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReapply(entry);
+                  }}
+                  className="h-8 px-3 sm:h-9 sm:px-4 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-lg hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-1.5"
+                  title="Re-apply"
+                >
+                  <Redo2 size={16} />
+                  <span className="text-xs sm:text-sm font-medium">Re-apply</span>
+                </button>
+              ) : entry.canRevert && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRevert(entry);
+                  }}
+                  className="h-8 px-3 sm:h-9 sm:px-4 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all flex items-center gap-1.5"
+                  title="Revert"
+                >
+                  <ArrowLeft size={16} />
+                  <span className="text-xs sm:text-sm font-medium">Revert</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Revert or Re-apply button */}
-          {entry.canReapply ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onReapply(entry);
-              }}
-              className="p-2 sm:px-3 sm:py-1.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5 flex-shrink-0"
-            >
-              <Redo2 size={14} />
-              <span className="hidden sm:inline">Re-apply</span>
-            </button>
-          ) : entry.canRevert && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRevert(entry);
-              }}
-              className="p-2 sm:px-3 sm:py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5 flex-shrink-0"
-            >
-              <ArrowLeft size={14} />
-              <span className="hidden sm:inline">Revert</span>
-            </button>
-          )}
-
-          {/* Expand toggle */}
-          <div className="text-[var(--text-muted)] flex-shrink-0">
+          {/* Chevron */}
+          <div className="text-[var(--text-muted)]/50 pl-1 self-center">
             {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
+
         </div>
 
-        {/* Expanded details */}
+        {/* Expanded Details */}
         <AnimatePresence>
           {isExpanded && (
             <motion.div
@@ -253,8 +249,8 @@ const HistoryEntry = memo(function HistoryEntry({ entry, onRevert, onReapply, on
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4 border-t border-[var(--glass-border)]">
-                <div className="mt-3 space-y-1">
+              <div className="px-4 pb-4 pt-0 border-t border-[var(--glass-border)]/50">
+                <div className="mt-3 space-y-2">
                   {entry.action === 'create' && entry.after && (
                     <div className="text-sm">
                       <div className="text-[var(--text-muted)] text-xs mb-1">Created with:</div>
@@ -283,12 +279,17 @@ const HistoryEntry = memo(function HistoryEntry({ entry, onRevert, onReapply, on
                   ))}
                 </div>
 
-                {entry.isCurrent && (
-                  <div className="mt-3 flex items-center gap-2 text-xs text-blue-400">
-                    <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                    Current position in history
-                  </div>
-                )}
+                <div className="mt-3 pt-2 border-t border-[var(--glass-border)]/30 flex justify-between items-center">
+                   <span className="text-xs text-[var(--text-muted)]">
+                      {formatTime(entry.timestamp)}
+                   </span>
+                   {entry.isCurrent && (
+                    <div className="flex items-center gap-1.5 text-xs text-blue-400 font-medium">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                      Current Version
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
@@ -355,16 +356,16 @@ export function HistoryView({ onRevert, onReapply }) {
           <button
             onClick={handleClearClick}
             className={`
-              h-8 px-3 rounded-lg transition-all flex items-center gap-2 border
+              h-9 px-4 rounded-xl transition-all flex items-center gap-2 border shadow-sm
               ${confirmClear 
                 ? 'bg-red-500 border-red-500 text-white hover:bg-red-600' 
                 : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-muted)] hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10'}
             `}
             title="Clear History"
           >
-            <Trash2 size={14} />
-            <span className={`${confirmClear ? 'inline' : 'hidden sm:inline'} text-sm font-medium whitespace-nowrap`}>
-              {confirmClear ? "Confirm Clear" : "Clear History"}
+            <Trash2 size={15} />
+            <span className="text-sm font-medium whitespace-nowrap">
+              {confirmClear ? "Confirm Clear All" : "Clear History"}
             </span>
           </button>
         )}
