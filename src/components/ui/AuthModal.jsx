@@ -99,16 +99,16 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
           <X size={20} />
         </button>
 
-        <div className="px-6 py-8 md:px-8 md:pt-10 md:pb-8 relative z-0">
+        <div className="px-5 py-6 md:px-8 md:pt-10 md:pb-8 relative z-0">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4 transform rotate-3">
-              <Sparkles className="text-white w-8 h-8" />
+          <div className="text-center mb-6">
+            <div className="w-12 h-12 md:w-16 md:h-16 mx-auto bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 mb-3 transform rotate-3">
+              <Sparkles className="text-white w-6 h-6 md:w-8 md:h-8" />
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent mb-2">
+            <h2 className="text-xl md:text-3xl font-bold bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent mb-1">
               {mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
-            <p className="text-neutral-400">
+            <p className="text-sm text-neutral-400">
               {mode === 'login' 
                 ? 'Enter your details to access your shortcuts' 
                 : 'Join us and start organizing your workflow'}
@@ -116,23 +116,23 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <AnimatePresence mode="wait">
               {error && (
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center font-medium"
+                  className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs md:text-sm text-center font-medium"
                 >
                   {error}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300 ml-1 uppercase tracking-wider">
+                <label className="text-[10px] md:text-xs font-semibold text-neutral-300 ml-1 uppercase tracking-wider">
                   Username
                 </label>
                 <div className="relative group">
@@ -140,7 +140,7 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-4 py-3 md:py-3.5 bg-neutral-900/50 border border-white/5 rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all group-hover:border-white/10"
+                    className="w-full px-4 py-2.5 md:py-3.5 bg-neutral-900/50 border border-white/5 rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all group-hover:border-white/10 text-sm md:text-base"
                     placeholder="Enter your username"
                     required
                     minLength={3}
@@ -155,21 +155,21 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
                   animate={{ height: 'auto', opacity: 1 }}
                   className="space-y-1.5 overflow-hidden"
                 >
-                  <label className="text-xs font-semibold text-neutral-300 ml-1 uppercase tracking-wider">
+                  <label className="text-[10px] md:text-xs font-semibold text-neutral-300 ml-1 uppercase tracking-wider">
                     Display Name
                   </label>
                   <input
                     type="text"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full px-4 py-3.5 bg-neutral-900/50 border border-white/5 rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all hover:border-white/10"
+                    className="w-full px-4 py-2.5 md:py-3.5 bg-neutral-900/50 border border-white/5 rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all hover:border-white/10 text-sm md:text-base"
                     placeholder="How should we call you?"
                   />
                 </motion.div>
               )}
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-300 ml-1 uppercase tracking-wider">
+                <label className="text-[10px] md:text-xs font-semibold text-neutral-300 ml-1 uppercase tracking-wider">
                   Password
                 </label>
                 <div className="relative group">
@@ -177,7 +177,7 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 md:py-3.5 bg-neutral-900/50 border border-white/5 rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all pr-12 group-hover:border-white/10"
+                    className="w-full px-4 py-2.5 md:py-3.5 bg-neutral-900/50 border border-white/5 rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all pr-12 group-hover:border-white/10 text-sm md:text-base"
                     placeholder="Enter your password"
                     required
                     minLength={6}
@@ -196,7 +196,7 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/25 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
+              className="w-full py-3 md:py-4 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/25 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -217,7 +217,7 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
               <button
                 type="button"
                 onClick={toggleMode}
-                className="text-sm text-neutral-400 hover:text-white transition-colors underline decoration-transparent hover:decoration-white/30 underline-offset-4"
+                className="text-xs md:text-sm text-neutral-400 hover:text-white transition-colors underline decoration-transparent hover:decoration-white/30 underline-offset-4"
               >
                 {mode === 'login' 
                   ? "Don't have an account? Register" 
@@ -227,21 +227,21 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
 
             {/* Demo Credentials - For Testing */}
             {mode === 'login' && (
-              <div className="mt-6 pt-4 border-t border-white/5">
-                <p className="text-[10px] text-neutral-500 text-center mb-3 uppercase tracking-widest">Demo Account</p>
+              <div className="mt-4 pt-3 border-t border-white/5">
+                <p className="text-[10px] text-neutral-500 text-center mb-2 uppercase tracking-widest">Demo Account</p>
                 <button
                   type="button"
                   onClick={() => {
                     setUsername('gabby_demo');
                     setPassword('gabby123');
                   }}
-                  className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all group"
+                  className="w-full flex items-center justify-between p-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all group"
                 >
                    <div className="text-left">
                      <div className="text-xs text-white/90 font-medium font-mono">gabby_demo</div>
                      <div className="text-[10px] text-white/50">Click to autofill</div>
                    </div>
-                   <div className="text-xs text-blue-400 group-hover:text-blue-300 font-medium bg-blue-500/10 px-2 py-1 rounded-lg">
+                   <div className="text-[10px] md:text-xs text-blue-400 group-hover:text-blue-300 font-medium bg-blue-500/10 px-2 py-1 rounded-lg">
                      Use Demo
                    </div>
                 </button>

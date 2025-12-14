@@ -182,7 +182,7 @@ export function GroupForm({
                 </div>
             }
         >
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:gap-4">
                 {renderVirtualGroupInfo()}
                 
                 {/* For virtual groups, show read-only info */}

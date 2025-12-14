@@ -257,7 +257,7 @@ export const Layout = memo(function Layout({ children, activeTab, onTabChange, t
       {/* Main Content */}
       <GlassPanel className="flex-1 h-full overflow-hidden relative border-gray-300 dark:border-white/10 bg-[var(--glass-bg)] flex flex-col mt-14 md:mt-0">
         {/* Top Bar */}
-        <div className="p-4 border-b border-gray-400 dark:border-[var(--glass-border)] flex justify-between items-center backdrop-blur-md z-20">
+        <div className="relative p-4 border-b border-gray-400 dark:border-[var(--glass-border)] flex justify-between items-center backdrop-blur-md z-20">
           <h2 className="text-xl font-bold text-[var(--text-primary)]">
             {visibleNavItems.find(i => i.id === activeTab)?.headerLabel || `${activeTab} View`}
           </h2>

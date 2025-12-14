@@ -429,7 +429,7 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
                                     >
                                         <GlassCard 
                                             className={clsx(
-                                                "h-28 flex items-center gap-4 cursor-pointer group hover:bg-[var(--glass-bg-hover)] border-l-4 relative transition-all",
+                                                "min-h-[5rem] h-auto py-3 sm:py-0 sm:h-28 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 cursor-pointer group hover:bg-[var(--glass-bg-hover)] border-l-4 relative transition-all",
                                                 child._containsMatch || child._isMatch
                                                     ? "border-l-green-500 bg-green-500/5 dark:bg-green-500/10"
                                                     : "border-l-blue-500/50"
@@ -441,20 +441,20 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
                                                         e.stopPropagation();
                                                         onEditGroup(groupData);
                                                     }}
-                                                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+                                                    className="absolute top-2 right-2 sm:top-3 sm:right-3 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 z-10"
                                                 >
                                                     <Settings size={14} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" />
                                                 </button>
                                             )}
                                             
                                             <div 
-                                                className="flex items-center gap-4 flex-1 h-full justify-between"
+                                                className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 flex-1 h-full w-full justify-between px-2 sm:px-0"
                                                 onClick={() => handleNodeClick(child.id)}
                                             >
-                                                <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
                                                     <div 
                                                         className={clsx(
-                                                            "w-14 h-14 rounded-xl flex items-center justify-center transition-transform overflow-hidden cursor-pointer relative group/icon",
+                                                            "w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center transition-transform overflow-hidden cursor-pointer relative group/icon flex-shrink-0",
                                                             child._containsMatch || child._isMatch
                                                                 ? "bg-green-500/20 text-green-500 group-hover:scale-110"
                                                                 : "bg-blue-500/20 text-blue-400 group-hover:scale-110"
@@ -475,21 +475,21 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
                                                             <Edit2 size={16} className="text-black dark:text-white" />
                                                         </div>
                                                     </div>
-                                                    <div className="flex-1">
+                                                    <div className="flex-1 min-w-0">
                                                         <h3 className={clsx(
-                                                            "font-semibold text-lg",
+                                                            "font-semibold text-base sm:text-lg truncate pr-6 sm:pr-0",
                                                             child._isMatch && "text-green-600 dark:text-green-400"
                                                         )}>
                                                             {child.name}
                                                         </h3>
-                                                        <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] mt-1">
+                                                        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)] mt-1">
                                                             {(() => {
                                                                 // Count subgroups (children that are actual groups, not end-nodes)
                                                                 const subgroupCount = Object.values(child.children).filter(c => 
                                                                     Object.keys(c.children).length > 0 || !!c.groupData
                                                                 ).length;
                                                                 return subgroupCount > 0 ? (
-                                                                    <span className="flex items-center gap-1.5 bg-blue-500/10 px-2 py-0.5 rounded text-blue-700 dark:text-blue-300/80">
+                                                                    <span className="flex items-center gap-1.5 bg-blue-500/10 px-2 py-0.5 rounded text-blue-700 dark:text-blue-300/80 whitespace-nowrap">
                                                                         {subgroupCount} subgroup{subgroupCount !== 1 ? 's' : ''}
                                                                     </span>
                                                                 ) : null;
@@ -507,7 +507,7 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
                                                                 };
                                                                 const totalShortcuts = countShortcuts(child);
                                                                 return totalShortcuts > 0 ? (
-                                                                    <span className="flex items-center gap-1.5 bg-purple-500/10 px-2 py-0.5 rounded text-purple-700 dark:text-purple-300/80">
+                                                                    <span className="flex items-center gap-1.5 bg-purple-500/10 px-2 py-0.5 rounded text-purple-700 dark:text-purple-300/80 whitespace-nowrap">
                                                                         {totalShortcuts} shortcut{totalShortcuts !== 1 ? 's' : ''}
                                                                     </span>
                                                                 ) : null;
@@ -516,7 +516,7 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="flex items-center gap-3 mr-4">
+                                                <div className="flex items-center justify-between w-full sm:w-auto mt-2 sm:mt-0 sm:gap-3 sm:mr-4 pl-[3.75rem] sm:pl-0">
                                                     <span className={clsx(
                                                         "w-10 h-10 flex items-center justify-center rounded-xl font-mono text-lg font-bold border-2 shadow-[0_0_12px_rgba(59,130,246,0.4)]",
                                                         child._containsMatch || child._isMatch
@@ -525,7 +525,7 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
                                                     )}>
                                                         {child.id}
                                                     </span>
-                                                    <ChevronRight size={20} className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors" />
+                                                    <ChevronRight size={20} className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors sm:block hidden" />
                                                 </div>
                                             </div>
                                         </GlassCard>
@@ -565,19 +565,19 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
                                 >
                                     <GlassCard 
                                         className={clsx(
-                                            "p-4 border-l-4 relative group cursor-pointer hover:bg-[var(--glass-bg-hover)] transition-all",
+                                            "p-3 sm:p-4 border-l-4 relative group cursor-pointer hover:bg-[var(--glass-bg-hover)] transition-all",
                                             highlightedShortcutId === item.id ? "border-l-blue-500 shadow-lg ring-1 ring-blue-500/30" : "border-l-purple-500/50"
                                         )}
                                         onClick={() => onEdit && onEdit(item)}
                                     >
-                                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer">
+                                        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer z-10">
                                             <Edit2 size={14} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" />
                                         </div>
                                         
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                                             <div className="flex items-center gap-3 w-full sm:w-auto overflow-hidden">
                                                 <div 
-                                                    className="w-12 h-12 rounded-xl bg-[var(--input-bg)] flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer relative group/icon"
+                                                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[var(--input-bg)] flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer relative group/icon"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         onEdit && onEdit(item);
@@ -592,13 +592,13 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
                                                         <Edit2 size={14} className="text-black dark:text-white" />
                                                     </div>
                                                 </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <h3 className="font-semibold text-base truncate">{item.app}</h3>
-                                                    <p className="text-sm text-[var(--text-secondary)] truncate">{item.action}</p>
+                                                <div className="min-w-0 flex-1 pr-6 sm:pr-0">
+                                                    <h3 className="font-semibold text-sm sm:text-base truncate">{item.app}</h3>
+                                                    <p className="text-xs sm:text-sm text-[var(--text-secondary)] truncate">{item.action}</p>
                                                 </div>
                                             </div>
                                             
-                                            <div className="flex items-center gap-2 w-full sm:w-auto justify-start sm:justify-end overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+                                            <div className="flex items-center gap-2 w-full sm:w-auto justify-start sm:justify-end overflow-x-auto custom-scrollbar pb-1 sm:pb-0 pl-[3.25rem] sm:pl-0">
                                                 {renderSequence(item.sequence)}
                                                 <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-purple-500/20 text-purple-400 ml-2 flex-shrink-0">
                                                     <LeaderKeyIcon size={16} />
