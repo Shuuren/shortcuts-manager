@@ -574,18 +574,18 @@ export function ShortcutForm({
                 onSubmit={handleSubmit} 
                 title={getTitle()}
                 actions={
-                    <div className="flex gap-3">
+                    <div className="flex flex-col-reverse sm:flex-row gap-3 w-full">
                         {isEditing && (
-                            <Button variant="danger" onClick={handleDelete} className="flex items-center gap-2">
+                            <Button variant="danger" onClick={handleDelete} className="flex items-center justify-center gap-2 w-full sm:w-auto">
                                 <Trash2 size={16} />
                                 Delete
                             </Button>
                         )}
-                        <div className="flex-1" />
-                        <Button variant="secondary" onClick={onClose}>
+                        <div className="hidden sm:block flex-1" />
+                        <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto">
                             Cancel
                         </Button>
-                        <Button variant="primary" onClick={handleSubmit}>
+                        <Button variant="primary" onClick={handleSubmit} className="w-full sm:w-auto">
                             {isEditing ? 'Save Changes' : 'Add Shortcut'}
                         </Button>
                     </div>

@@ -99,13 +99,13 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
           <X size={20} />
         </button>
 
-        <div className="px-8 pt-10 pb-8 relative z-0">
+        <div className="px-6 py-8 md:px-8 md:pt-10 md:pb-8 relative z-0">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4 transform rotate-3">
               <Sparkles className="text-white w-8 h-8" />
             </div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent mb-2">
+            <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent mb-2">
               {mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
             <p className="text-neutral-400">
@@ -136,11 +136,11 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
                   Username
                 </label>
                 <div className="relative group">
-                  <input
+                    <input
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-4 py-3.5 bg-neutral-900/50 border border-white/5 rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all group-hover:border-white/10"
+                    className="w-full px-4 py-3 md:py-3.5 bg-neutral-900/50 border border-white/5 rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all group-hover:border-white/10"
                     placeholder="Enter your username"
                     required
                     minLength={3}
@@ -173,11 +173,11 @@ export const AuthModal = ({ isOpen, onClose, mode: initialMode = 'login' }) => {
                   Password
                 </label>
                 <div className="relative group">
-                  <input
+                    <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3.5 bg-neutral-900/50 border border-white/5 rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all pr-12 group-hover:border-white/10"
+                    className="w-full px-4 py-3 md:py-3.5 bg-neutral-900/50 border border-white/5 rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all pr-12 group-hover:border-white/10"
                     placeholder="Enter your password"
                     required
                     minLength={6}

@@ -574,8 +574,8 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
                                             <Edit2 size={14} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" />
                                         </div>
                                         
-                                        <div className="flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-3 flex-shrink-0">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3 w-full sm:w-auto overflow-hidden">
                                                 <div 
                                                     className="w-12 h-12 rounded-xl bg-[var(--input-bg)] flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer relative group/icon"
                                                     onClick={(e) => {
@@ -592,15 +592,15 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
                                                         <Edit2 size={14} className="text-black dark:text-white" />
                                                     </div>
                                                 </div>
-                                                <div className="min-w-0">
+                                                <div className="min-w-0 flex-1">
                                                     <h3 className="font-semibold text-base truncate">{item.app}</h3>
                                                     <p className="text-sm text-[var(--text-secondary)] truncate">{item.action}</p>
                                                 </div>
                                             </div>
                                             
-                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                            <div className="flex items-center gap-2 w-full sm:w-auto justify-start sm:justify-end overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
                                                 {renderSequence(item.sequence)}
-                                                <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-purple-500/20 text-purple-400 ml-2">
+                                                <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-purple-500/20 text-purple-400 ml-2 flex-shrink-0">
                                                     <LeaderKeyIcon size={16} />
                                                 </div>
                                             </div>

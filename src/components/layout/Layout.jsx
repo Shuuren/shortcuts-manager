@@ -103,7 +103,7 @@ export const Layout = memo(function Layout({ children, activeTab, onTabChange, t
           transition-all duration-300 ease-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           top-0 left-0 md:top-auto md:left-auto
-          pt-16 md:pt-0 px-0 pb-0
+          pt-24 md:pt-0 px-0 pb-0
           ${isExpanded ? 'w-56' : 'w-16'}
         `}
         onMouseEnter={handleMouseEnter}
@@ -148,7 +148,7 @@ export const Layout = memo(function Layout({ children, activeTab, onTabChange, t
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 flex flex-col gap-1 px-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
+        <nav className="flex-1 flex flex-col gap-2 md:gap-1 px-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
           {visibleNavItems.map((item) => {
             // Render divider
             if (item.id.startsWith('divider')) {

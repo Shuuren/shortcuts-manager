@@ -606,7 +606,7 @@ function App() {
         {canEdit && activeTab !== 'apps' && activeTab !== 'history' && activeTab !== 'export' && (
           <button
             onClick={handleCreate}
-            className="absolute bottom-8 right-8 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-50"
+            className="absolute bottom-20 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-50"
             title="Add Shortcut"
           >
             <Plus size={24} />
@@ -617,7 +617,7 @@ function App() {
         {canEdit && activeTab === 'apps' && (
           <button
             onClick={handleCreateApp}
-            className="absolute bottom-8 right-8 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-50"
+            className="absolute bottom-20 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-50"
             title="Add App"
           >
             <Plus size={24} />
