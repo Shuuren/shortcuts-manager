@@ -1,41 +1,111 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+/**
+ * App.jsx - Lean Application Shell
+ * 
+ * Responsibilities:
+ * - Route management (tab switching via URL)
+ * - Theme management
+ * - Global keyboard shortcuts (undo/redo)
+ * - Modal state management
+ * - Wiring up data store with views
+ */
+
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { Layout } from './components/layout/Layout';
-import { LeaderView } from './components/views/LeaderView';
-import { RaycastView } from './components/views/RaycastView';
-import { SystemView } from './components/views/SystemView';
-import { AppsView } from './components/views/AppsView';
-import { HistoryView } from './components/views/HistoryView';
-import { ExportManager } from './components/ui/ExportManager';
-import { SearchBar } from './components/ui/SearchBar';
 import { ShortcutForm } from './components/ui/ShortcutForm';
 import { GroupForm } from './components/ui/GroupForm';
 import { AppForm } from './components/ui/AppForm';
 import { UndoRedoHint } from './components/ui/UndoRedoHint';
-import { useToast } from './components/ui/Toast';
 import { useHistory } from './context/HistoryContext';
 import { useAuth } from './context/AuthContext';
-
+import { useShortcutsStore } from './hooks/useShortcutsStore';
+import { useToast } from './components/ui/Toast';
 import { Plus } from 'lucide-react';
-import { API_BASE } from './config/api';
+
+// Page components (memoized containers)
+import { LeaderPage, RaycastPage, SystemPage, AppsPage, HistoryPage, ExportPage } from './pages';
+
+// Performance utilities
+import { markAppStart, trackRouteChange, measureFirstViewRender, DEBUG_PERF } from './utils/perf';
+
+// Mark app start for performance tracking
+if (DEBUG_PERF) {
+  markAppStart();
+}
+
+// ============= Route Configuration =============
+
+const ROUTE_MAP = {
+  '/': 'leader',
+  '/leader': 'leader',
+  '/leaderkey': 'leader',
+  '/raycast': 'raycast',
+  '/system': 'system',
+  '/apps': 'apps',
+  '/export': 'export',
+  '/history': 'history',
+};
+
+// Get initial tab from URL path
+const getInitialTab = () => {
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname.toLowerCase();
+    return ROUTE_MAP[path] || 'leader';
+  }
+  return 'leader';
+};
+
+// ============= Loading Skeleton =============
+
+const LoadingSkeleton = memo(function LoadingSkeleton() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)] animate-pulse gap-4">
+      <div className="w-12 h-12 rounded-xl bg-[var(--text-muted)]/20"></div>
+      <div>Loading shortcuts...</div>
+    </div>
+  );
+});
+
+// ============= Main App Component =============
 
 function App() {
-  const [activeTab, setActiveTab] = useState('leader');
-  const { user, canEdit, token, loading: authLoading } = useAuth();
+  // ---- Route State ----
+  const [activeTab, setActiveTab] = useState(getInitialTab);
   
-  // Theme state
+  // ---- Auth & Permissions ----
+  const { user, canEdit, loading: authLoading } = useAuth();
+  
+  // ---- Data Store ----
+  const store = useShortcutsStore();
+  const toast = useToast();
+  const history = useHistory();
+  
+  // ---- Theme State ----
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('theme');
-      if (savedTheme) {
-        return savedTheme;
-      }
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
-      }
+      if (savedTheme) return savedTheme;
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
     }
-    return 'dark'; // Default to dark since that was the original design
+    return 'dark';
   });
 
+  // ---- Modal State ----
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingShortcut, setEditingShortcut] = useState(null);
+  const [isGroupFormOpen, setIsGroupFormOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [isAppFormOpen, setIsAppFormOpen] = useState(false);
+  const [editingApp, setEditingApp] = useState(null);
+  
+  // ---- Highlight State ----
+  const [highlightedShortcutId, setHighlightedShortcutId] = useState(null);
+  
+  // ---- Search State ----
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // ============= Effects =============
+
+  // Apply theme to document
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
@@ -46,280 +116,27 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
-
-  const [data, setData] = useState({ 
-    leaderShortcuts: [], 
-    raycastShortcuts: [], 
-    systemShortcuts: [],
-    leaderGroups: [],
-    apps: [],
-    appsLibrary: []
-  });
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const toast = useToast();
-  const history = useHistory();
-  
-  // Shortcut CRUD Modal state
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingShortcut, setEditingShortcut] = useState(null);
-  
-  // Group CRUD Modal state
-  const [isGroupFormOpen, setIsGroupFormOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState(null);
-  
-  // App CRUD Modal state
-  const [isAppFormOpen, setIsAppFormOpen] = useState(false);
-  const [editingApp, setEditingApp] = useState(null);
-
-  // Helper to get auth headers
-  const getAuthHeaders = useCallback(() => {
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    return headers;
-  }, [token]);
-
-  // Fetch data - includes auth token to get user-specific data
-  const fetchData = useCallback(() => {
-    const headers = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    fetch(API_BASE, { headers })
-      .then(res => res.json())
-      .then(data => {
-        // Handle apps vs appsLibrary compatibility
-        const processedData = {
-            ...data,
-            apps: data.apps || data.appsLibrary || []
-        };
-        setData(processedData);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Failed to fetch shortcuts:", err);
-        setLoading(false);
-      });
-  }, [token]);
-
-  // Refetch data when authentication changes
+  // Handle browser back/forward navigation
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const handlePopState = (event) => {
+      const newTab = event.state?.tab || ROUTE_MAP[window.location.pathname.toLowerCase()] || 'leader';
+      setActiveTab(newTab);
+      if (DEBUG_PERF) trackRouteChange('popstate', newTab);
+    };
 
-  // Redirect from history tab when user logs out (loses edit permissions)
-  useEffect(() => {
-    if (!canEdit && activeTab === 'history') {
-      setActiveTab('leader');
-    }
-  }, [canEdit, activeTab]);
+    window.addEventListener('popstate', handlePopState);
+    
+    // Set initial history state
+    const currentTab = getInitialTab();
+    const currentPath = currentTab === 'leader' ? '/' : `/${currentTab}`;
+    window.history.replaceState({ tab: currentTab }, '', currentPath);
 
-  // Clear history when user changes (login/logout or switching accounts)
-  useEffect(() => {
-    // Use username as user ID, or null for unauthenticated
-    history.setCurrentUser(user?.username || null);
-  }, [user?.username, history]);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
-  // Get shortcut type based on active tab
-  const getShortcutType = () => {
-    switch (activeTab) {
-      case 'leader': return 'leaderShortcuts';
-      case 'raycast': return 'raycastShortcuts';
-      case 'system': return 'systemShortcuts';
-      default: return 'leaderShortcuts';
-    }
-  };
-
-  // Helper to apply a change (used by both normal operations and undo/redo)
-  const applyChange = useCallback(async (entityType, action, entityId, entityData) => {
-    
-    try {
-      if (action === 'create') {
-        await fetch(`${API_BASE}/${entityType}`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(entityData)
-        });
-      } else if (action === 'update') {
-        await fetch(`${API_BASE}/${entityType}/${entityId}`, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(entityData)
-        });
-      } else if (action === 'delete') {
-        await fetch(`${API_BASE}/${entityType}/${entityId}`, {
-          method: 'DELETE',
-          headers: getAuthHeaders()
-        });
-      }
-      fetchData();
-      return true;
-    } catch (err) {
-      console.error(`Failed to apply change:`, err);
-      return false;
-    }
-  }, [getAuthHeaders, fetchData]);
-
-  // Undo operation - marks the entry as reverted
-  const handleUndo = useCallback(async () => {
-    if (!history.canUndo || !canEdit) return;
-    
-    const entry = history.getUndoEntry();
-    if (!entry || entry.isReverted) return;
-    
-    history.setUndoRedoFlag(true);
-    
-    try {
-      let success = false;
-      
-      if (entry.action === 'create') {
-        // Undo create = delete the item
-        success = await applyChange(entry.entityType, 'delete', entry.entityId, null, true);
-      } else if (entry.action === 'update') {
-        // Undo update = restore previous values
-        success = await applyChange(entry.entityType, 'update', entry.entityId, entry.before, true);
-      } else if (entry.action === 'delete') {
-        // Undo delete = recreate the item
-        success = await applyChange(entry.entityType, 'create', null, entry.before, true);
-      }
-      
-      if (success) {
-        // Mark this entry as reverted instead of creating a new entry
-        history.markAsReverted(entry.id);
-        history.decrementIndex();
-        toast.success('Undone - click Re-apply to restore');
-      } else {
-        toast.error('Failed to undo');
-      }
-    } finally {
-      history.setUndoRedoFlag(false);
-    }
-  }, [history, toast, canEdit, applyChange]);
-
-  // Redo operation
-  const handleRedo = useCallback(async () => {
-    if (!history.canRedo || !canEdit) return;
-    
-    const entry = history.getRedoEntry();
-    if (!entry) return;
-    
-    history.setUndoRedoFlag(true);
-    
-    try {
-      let success = false;
-      
-      if (entry.action === 'create') {
-        // Redo create = recreate the item
-        success = await applyChange(entry.entityType, 'create', null, entry.after, true);
-      } else if (entry.action === 'update') {
-        // Redo update = apply changes again
-        success = await applyChange(entry.entityType, 'update', entry.entityId, entry.after, true);
-      } else if (entry.action === 'delete') {
-        // Redo delete = delete again
-        success = await applyChange(entry.entityType, 'delete', entry.entityId, null, true);
-      }
-      
-      if (success) {
-        history.incrementIndex();
-        toast.success('Redo successful');
-      } else {
-        toast.error('Failed to redo');
-      }
-    } finally {
-      history.setUndoRedoFlag(false);
-    }
-  }, [history, toast, canEdit, applyChange]);
-
-  // Revert a specific history entry (marks it as reverted, no new entry)
-  const handleRevertToEntry = useCallback(async (entry) => {
-    if (!canEdit) {
-      toast.error('Login required');
-      return;
-    }
-    
-    if (entry.isReverted) {
-      // Entry is already reverted, nothing to do
-      return;
-    }
-    
-    history.setUndoRedoFlag(true);
-    
-    try {
-      let success = false;
-      
-      if (entry.action === 'create') {
-        // Revert create = delete the item
-        success = await applyChange(entry.entityType, 'delete', entry.entityId, null, true);
-      } else if (entry.action === 'update') {
-        // Revert update = restore previous values
-        success = await applyChange(entry.entityType, 'update', entry.entityId, entry.before, true);
-      } else if (entry.action === 'delete') {
-        // Revert delete = recreate the item
-        success = await applyChange(entry.entityType, 'create', null, entry.before, true);
-      }
-      
-      if (success) {
-        // Mark this entry as reverted instead of creating a new entry
-        history.markAsReverted(entry.id);
-        toast.success(`Reverted: ${entry.entityName || 'Item'} - click Re-apply to restore`);
-      } else {
-        toast.error('Failed to revert change');
-      }
-    } finally {
-      history.setUndoRedoFlag(false);
-    }
-  }, [history, toast, canEdit, applyChange]);
-
-  // Re-apply a reverted history entry
-  const handleReapply = useCallback(async (entry) => {
-    if (!canEdit) {
-      toast.error('Login required');
-      return;
-    }
-    
-    if (!entry.isReverted) {
-      // Entry is not reverted, nothing to re-apply
-      return;
-    }
-    
-    history.setUndoRedoFlag(true);
-    
-    try {
-      let success = false;
-      
-      if (entry.action === 'create') {
-        // Re-apply create = recreate the item
-        success = await applyChange(entry.entityType, 'create', null, entry.after, true);
-      } else if (entry.action === 'update') {
-        // Re-apply update = apply the changes again
-        success = await applyChange(entry.entityType, 'update', entry.entityId, entry.after, true);
-      } else if (entry.action === 'delete') {
-        // Re-apply delete = delete again
-        success = await applyChange(entry.entityType, 'delete', entry.entityId, null, true);
-      }
-      
-      if (success) {
-        // Mark this entry as applied (not reverted)
-        history.markAsApplied(entry.id);
-        toast.success(`Re-applied: ${entry.entityName || 'Item'}`);
-      } else {
-        toast.error('Failed to re-apply change');
-      }
-    } finally {
-      history.setUndoRedoFlag(false);
-    }
-  }, [history, toast, canEdit, applyChange]);
-
-  // Keyboard shortcuts for undo/redo (for editors - admin and demo)
+  // Keyboard shortcuts for undo/redo
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Only allow undo/redo for users who can edit
       if (!canEdit) return;
       
       // Ignore if user is typing in an input
@@ -332,11 +149,9 @@ function App() {
       
       if (modKey && e.key === 'z') {
         if (e.shiftKey) {
-          // Cmd+Shift+Z = Redo
           e.preventDefault();
           handleRedo();
         } else {
-          // Cmd+Z = Undo
           e.preventDefault();
           handleUndo();
         }
@@ -345,28 +160,60 @@ function App() {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo, handleRedo, canEdit]);
+  });  // No deps - uses stable functions from outer scope
 
-  // Shortcut CRUD Operations (admin only)
-  const handleCreate = () => {
+  // Performance: measure first view render
+  useEffect(() => {
+    if (!store.loading && DEBUG_PERF) {
+      measureFirstViewRender(activeTab);
+    }
+  }, [store.loading, activeTab]);
+
+  // ============= Handlers =============
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  }, []);
+
+  const handleTabChange = useCallback((newTab) => {
+    if (DEBUG_PERF) trackRouteChange(activeTab, newTab);
+    setActiveTab(newTab);
+    const newPath = newTab === 'leader' ? '/' : `/${newTab}`;
+    window.history.pushState({ tab: newTab }, '', newPath);
+  }, [activeTab]);
+
+  // Redirect from history tab when user loses edit permissions
+  useEffect(() => {
+    if (!canEdit && activeTab === 'history') {
+      handleTabChange('leader');
+    }
+  }, [canEdit, activeTab, handleTabChange]);
+
+  // Get shortcut type for current tab
+  const getShortcutType = useCallback(() => {
+    return store.getShortcutType(activeTab);
+  }, [activeTab, store]);
+
+  // ---- Shortcut CRUD ----
+  const handleCreate = useCallback(() => {
     if (!canEdit) {
       toast.error('Login required to create shortcuts');
       return;
     }
     setEditingShortcut(null);
     setIsFormOpen(true);
-  };
+  }, [canEdit, toast]);
 
-  const handleEdit = (shortcut) => {
+  const handleEdit = useCallback((shortcut) => {
     if (!canEdit) {
       toast.error('Login required to edit shortcuts');
       return;
     }
     setEditingShortcut(shortcut);
     setIsFormOpen(true);
-  };
+  }, [canEdit, toast]);
 
-  const handleSave = async (shortcutData) => {
+  const handleSave = useCallback(async (shortcutData) => {
     if (!canEdit) {
       toast.error('Login required');
       return;
@@ -376,79 +223,18 @@ function App() {
     
     try {
       if (editingShortcut) {
-        // Store before state for history
-        const beforeState = { ...editingShortcut };
-        
-        const response = await fetch(`${API_BASE}/${type}/${editingShortcut.id}`, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(shortcutData)
-        });
-        
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to update');
-        }
-        
-        const updatedItem = await response.json();
-
-        // Optimistic Update
-        setData(prev => ({
-          ...prev,
-          [type]: prev[type].map(item => item.id === updatedItem.id ? updatedItem : item)
-        }));
-        
-        // Add to history
-        history.addChange({
-          action: 'update',
-          entityType: type,
-          entityId: editingShortcut.id,
-          entityName: shortcutData.name || shortcutData.action || editingShortcut.name,
-          before: beforeState,
-          after: { ...beforeState, ...shortcutData }
-        });
-        
-        toast.success('Shortcut updated successfully!');
+        await store.updateShortcut(editingShortcut.id, shortcutData, type);
       } else {
-        const response = await fetch(`${API_BASE}/${type}`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(shortcutData)
-        });
-        
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to create');
-        }
-        
-        const newItem = await response.json();
-        
-        // Optimistic Update
-        setData(prev => ({
-          ...prev,
-          [type]: [...prev[type], newItem]
-        }));
-        
-        // Add to history
-        history.addChange({
-          action: 'create',
-          entityType: type,
-          entityId: newItem.id,
-          entityName: shortcutData.name || shortcutData.action,
-          before: null,
-          after: newItem
-        });
-        
-        toast.success('Shortcut created successfully!');
+        await store.createShortcut(shortcutData, type);
       }
-      // fetchData(); // Removed to rely on optimistic update, avoiding race conditions
-    } catch (err) {
-      console.error('Failed to save shortcut:', err);
-      toast.error(err.message || 'Failed to save shortcut. Please try again.');
+      setIsFormOpen(false);
+      setEditingShortcut(null);
+    } catch {
+      // Error is already handled by store
     }
-  };
+  }, [canEdit, editingShortcut, getShortcutType, store, toast]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     if (!canEdit) {
       toast.error('Login required');
       return;
@@ -456,66 +242,35 @@ function App() {
     
     const type = getShortcutType();
     
-    // Find the item to store for history
-    const itemToDelete = data[type]?.find(item => item.id === id);
-    
     try {
-      const response = await fetch(`${API_BASE}/${type}/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete');
-      }
-      
-      // Optimistic Update
-      setData(prev => ({
-        ...prev,
-        [type]: prev[type].filter(item => item.id !== id)
-      }));
-
-      // Add to history
-      if (itemToDelete) {
-        history.addChange({
-          action: 'delete',
-          entityType: type,
-          entityId: id,
-          entityName: itemToDelete.name || itemToDelete.action,
-          before: itemToDelete,
-          after: null
-        });
-      }
-      
-      // fetchData();
-      toast.success('Shortcut deleted successfully!');
-    } catch (err) {
-      console.error('Failed to delete shortcut:', err);
-      toast.error(err.message || 'Failed to delete shortcut. Please try again.');
+      await store.deleteShortcut(id, type);
+      setIsFormOpen(false);
+      setEditingShortcut(null);
+    } catch {
+      // Error is already handled by store
     }
-  };
+  }, [canEdit, getShortcutType, store, toast]);
 
-  // Group CRUD Operations
-  const handleEditGroup = (group) => {
+  // ---- Group CRUD ----
+  const handleEditGroup = useCallback((group) => {
     if (!canEdit) {
       toast.error('Login required');
       return;
     }
     setEditingGroup(group);
     setIsGroupFormOpen(true);
-  };
+  }, [canEdit, toast]);
 
-  const handleCreateGroup = () => {
+  const handleCreateGroup = useCallback(() => {
     if (!canEdit) {
       toast.error('Login required');
       return;
     }
     setEditingGroup(null);
     setIsGroupFormOpen(true);
-  };
+  }, [canEdit, toast]);
 
-  const handleSaveGroup = async (groupData) => {
+  const handleSaveGroup = useCallback(async (groupData) => {
     if (!canEdit) {
       toast.error('Login required');
       return;
@@ -523,139 +278,52 @@ function App() {
     
     try {
       if (editingGroup) {
-        const beforeState = { ...editingGroup };
-        
-        const response = await fetch(`${API_BASE}/leaderGroups/${editingGroup.id}`, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(groupData)
-        });
-        
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to update');
-        }
-        
-        const updatedGroup = await response.json();
-
-        // Optimistic Update
-        setData(prev => ({
-            ...prev,
-            leaderGroups: prev.leaderGroups.map(g => g.id === updatedGroup.id ? updatedGroup : g)
-        }));
-        
-        history.addChange({
-          action: 'update',
-          entityType: 'leaderGroups',
-          entityId: editingGroup.id,
-          entityName: groupData.name || editingGroup.name,
-          before: beforeState,
-          after: { ...beforeState, ...groupData }
-        });
-        
-        toast.success('Group updated successfully!');
+        await store.updateGroup(editingGroup.id, groupData);
       } else {
-        const response = await fetch(`${API_BASE}/leaderGroups`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(groupData)
-        });
-        
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to create');
-        }
-        
-        const newGroup = await response.json();
-
-        // Optimistic Update
-        setData(prev => ({
-            ...prev,
-            leaderGroups: [...prev.leaderGroups, newGroup]
-        }));
-        
-        history.addChange({
-          action: 'create',
-          entityType: 'leaderGroups',
-          entityId: newGroup.id,
-          entityName: groupData.name,
-          before: null,
-          after: newGroup
-        });
-        
-        toast.success('Group created successfully!');
+        await store.createGroup(groupData);
       }
-      // fetchData();
-    } catch (err) {
-      console.error('Failed to save group:', err);
-      toast.error(err.message || 'Failed to save group. Please try again.');
+      setIsGroupFormOpen(false);
+      setEditingGroup(null);
+    } catch {
+      // Error is already handled by store
     }
-  };
+  }, [canEdit, editingGroup, store, toast]);
 
-  const handleDeleteGroup = async (id) => {
+  const handleDeleteGroup = useCallback(async (id) => {
     if (!canEdit) {
       toast.error('Login required');
       return;
     }
     
-    const groupToDelete = data.leaderGroups?.find(g => g.id === id);
-    
     try {
-      const response = await fetch(`${API_BASE}/leaderGroups/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete');
-      }
-      
-      // Optimistic Update
-      setData(prev => ({
-         ...prev,
-         leaderGroups: prev.leaderGroups.filter(g => g.id !== id)
-      }));
-
-      if (groupToDelete) {
-        history.addChange({
-          action: 'delete',
-          entityType: 'leaderGroups',
-          entityId: id,
-          entityName: groupToDelete.name,
-          before: groupToDelete,
-          after: null
-        });
-      }
-      
-      // fetchData();
-      toast.success('Group deleted successfully!');
-    } catch (err) {
-      console.error('Failed to delete group:', err);
-      toast.error(err.message || 'Failed to delete group. Please try again.');
+      await store.deleteGroup(id);
+      setIsGroupFormOpen(false);
+      setEditingGroup(null);
+    } catch {
+      // Error is already handled by store
     }
-  };
+  }, [canEdit, store, toast]);
 
-  // App CRUD Operations
-  const handleEditApp = (app) => {
+  // ---- App CRUD ----
+  const handleEditApp = useCallback((app) => {
     if (!canEdit) {
       toast.error('Login required');
       return;
     }
     setEditingApp(app);
     setIsAppFormOpen(true);
-  };
+  }, [canEdit, toast]);
 
-  const handleCreateApp = () => {
+  const handleCreateApp = useCallback(() => {
     if (!canEdit) {
       toast.error('Login required');
       return;
     }
     setEditingApp(null);
     setIsAppFormOpen(true);
-  };
+  }, [canEdit, toast]);
 
-  const handleSaveApp = async (appData) => {
+  const handleSaveApp = useCallback(async (appData) => {
     if (!canEdit) {
       toast.error('Login required');
       return;
@@ -663,335 +331,338 @@ function App() {
     
     try {
       if (editingApp) {
-        const beforeState = { ...editingApp };
-        
-        const response = await fetch(`${API_BASE}/apps/${editingApp.id}`, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(appData)
-        });
-        
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to update');
-        }
-        const updatedApp = await response.json();
-
-        // Optimistic Update
-        setData(prev => ({
-            ...prev,
-            apps: prev.apps.map(a => a.id === updatedApp.id ? updatedApp : a)
-        }));
-        
-        history.addChange({
-          action: 'update',
-          entityType: 'apps',
-          entityId: editingApp.id,
-          entityName: appData.name || editingApp.name,
-          before: beforeState,
-          after: { ...beforeState, ...appData }
-        });
-        
-        toast.success('App updated successfully!');
+        await store.updateApp(editingApp.id, appData);
       } else {
-        const response = await fetch(`${API_BASE}/apps`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(appData)
-        });
-        
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to create');
-        }
-        
-        const newApp = await response.json();
-        
-        // Optimistic Update
-        setData(prev => ({
-            ...prev,
-            apps: [...prev.apps, newApp]
-        }));
-        
-        history.addChange({
-          action: 'create',
-          entityType: 'apps',
-          entityId: newApp.id,
-          entityName: appData.name,
-          before: null,
-          after: newApp
-        });
-        
-        toast.success('App added to library!');
+        await store.createApp(appData);
       }
-      // fetchData();
-    } catch (err) {
-      console.error('Failed to save app:', err);
-      toast.error(err.message || 'Failed to save app. Please try again.');
+      setIsAppFormOpen(false);
+      setEditingApp(null);
+    } catch {
+      // Error is already handled by store
     }
-  };
+  }, [canEdit, editingApp, store, toast]);
 
-  const handleDeleteApp = async (id) => {
+  const handleDeleteApp = useCallback(async (id) => {
     if (!canEdit) {
       toast.error('Login required');
       return;
     }
-    
-    const appToDelete = data.apps?.find(a => a.id === id);
     
     try {
-      const response = await fetch(`${API_BASE}/apps/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete');
-      }
-      
-      // Optimistic Update
-      setData(prev => ({
-          ...prev,
-          apps: prev.apps.filter(a => a.id !== id)
-      }));
-
-      if (appToDelete) {
-        history.addChange({
-          action: 'delete',
-          entityType: 'apps',
-          entityId: id,
-          entityName: appToDelete.name,
-          before: appToDelete,
-          after: null
-        });
-      }
-      
-      // fetchData();
-      toast.success('App removed from library!');
-    } catch (err) {
-      console.error('Failed to delete app:', err);
-      toast.error(err.message || 'Failed to delete app. Please try again.');
+      await store.deleteApp(id);
+      setIsAppFormOpen(false);
+      setEditingApp(null);
+    } catch {
+      // Error is already handled by store
     }
-  };
+  }, [canEdit, store, toast]);
 
-  // Handle editing a shortcut from the App form (linked shortcuts panel)
-  const handleEditShortcutFromApp = (shortcut, shortcutType) => {
+  // ---- Edit shortcut from App form ----
+  const handleEditShortcutFromApp = useCallback((shortcut, shortcutType) => {
     if (!canEdit) {
       toast.error('Login required');
       return;
     }
     
-    // Close app form first
     setIsAppFormOpen(false);
     setEditingApp(null);
     
-    // Switch to the appropriate tab
     const tabMap = {
       'leaderShortcuts': 'leader',
       'raycastShortcuts': 'raycast',
       'systemShortcuts': 'system'
     };
     const targetTab = tabMap[shortcutType] || 'leader';
-    setActiveTab(targetTab);
+    handleTabChange(targetTab);
     
-    // Highlight the shortcut in the view
     setHighlightedShortcutId(shortcut.id);
+    setTimeout(() => setHighlightedShortcutId(null), 3000);
     
-    // Reset highlight after a delay so it doesn't persist forever
-    setTimeout(() => {
-        setHighlightedShortcutId(null);
-    }, 3000);
-    
-    // Open the form after a slight delay
     setTimeout(() => {
       setEditingShortcut(shortcut);
       setIsFormOpen(true);
     }, 100);
-  };
+  }, [canEdit, handleTabChange, toast]);
 
-  // Filter Logic
-  const filteredData = useMemo(() => {
-    if (!searchQuery) return data;
-    const lowerQ = searchQuery.toLowerCase();
+  // ---- Undo/Redo ----
+  const handleUndo = useCallback(async () => {
+    if (!history.canUndo || !canEdit) return;
+    
+    const entry = history.getUndoEntry();
+    if (!entry || entry.isReverted) return;
+    
+    history.setUndoRedoFlag(true);
+    
+    try {
+      let success = false;
+      
+      if (entry.action === 'create') {
+        success = await store.applyChange(entry.entityType, 'delete', entry.entityId, null);
+      } else if (entry.action === 'update') {
+        success = await store.applyChange(entry.entityType, 'update', entry.entityId, entry.before);
+      } else if (entry.action === 'delete') {
+        success = await store.applyChange(entry.entityType, 'create', null, entry.before);
+      }
+      
+      if (success) {
+        history.markAsReverted(entry.id);
+        history.decrementIndex();
+        toast.success('Undone - click Re-apply to restore');
+      } else {
+        toast.error('Failed to undo');
+      }
+    } finally {
+      history.setUndoRedoFlag(false);
+    }
+  }, [history, toast, canEdit, store]);
 
-    const matches = (item) => {
-      // Search specific text fields that are user-facing
-      const textFields = [
-        item.name,
-        item.action,
-        item.commandName,
-        item.app,
-        item.appOrContext, // Critical for System Shortcuts
-        item.extension,    // Critical for Raycast
-        item.category,
-        item.aliasText,
-        item.keys,
-        item.notes
-      ];
+  const handleRedo = useCallback(async () => {
+    if (!history.canRedo || !canEdit) return;
+    
+    const entry = history.getRedoEntry();
+    if (!entry) return;
+    
+    history.setUndoRedoFlag(true);
+    
+    try {
+      let success = false;
+      
+      if (entry.action === 'create') {
+        success = await store.applyChange(entry.entityType, 'create', null, entry.after);
+      } else if (entry.action === 'update') {
+        success = await store.applyChange(entry.entityType, 'update', entry.entityId, entry.after);
+      } else if (entry.action === 'delete') {
+        success = await store.applyChange(entry.entityType, 'delete', entry.entityId, null);
+      }
+      
+      if (success) {
+        history.incrementIndex();
+        toast.success('Redo successful');
+      } else {
+        toast.error('Failed to redo');
+      }
+    } finally {
+      history.setUndoRedoFlag(false);
+    }
+  }, [history, toast, canEdit, store]);
 
-      const textMatch = textFields.some(val => 
-        val && typeof val === 'string' && val.toLowerCase().includes(lowerQ)
-      );
+  // ---- History Actions ----
+  const handleRevertToEntry = useCallback(async (entry) => {
+    if (!canEdit) {
+      toast.error('Login required');
+      return;
+    }
+    
+    if (entry.isReverted) return;
+    
+    history.setUndoRedoFlag(true);
+    
+    try {
+      let success = false;
+      
+      if (entry.action === 'create') {
+        success = await store.applyChange(entry.entityType, 'delete', entry.entityId, null);
+      } else if (entry.action === 'update') {
+        success = await store.applyChange(entry.entityType, 'update', entry.entityId, entry.before);
+      } else if (entry.action === 'delete') {
+        success = await store.applyChange(entry.entityType, 'create', null, entry.before);
+      }
+      
+      if (success) {
+        history.markAsReverted(entry.id);
+        toast.success(`Reverted: ${entry.entityName || 'Item'} - click Re-apply to restore`);
+      } else {
+        toast.error('Failed to revert change');
+      }
+    } finally {
+      history.setUndoRedoFlag(false);
+    }
+  }, [history, toast, canEdit, store]);
 
-      // Search sequence (joined) - e.g. "vc" matches "Leader v c"
-      const sequenceMatch = item.sequence && Array.isArray(item.sequence) && 
-        item.sequence.join('').toLowerCase().includes(lowerQ);
+  const handleReapply = useCallback(async (entry) => {
+    if (!canEdit) {
+      toast.error('Login required');
+      return;
+    }
+    
+    if (!entry.isReverted) return;
+    
+    history.setUndoRedoFlag(true);
+    
+    try {
+      let success = false;
+      
+      if (entry.action === 'create') {
+        success = await store.applyChange(entry.entityType, 'create', null, entry.after);
+      } else if (entry.action === 'update') {
+        success = await store.applyChange(entry.entityType, 'update', entry.entityId, entry.after);
+      } else if (entry.action === 'delete') {
+        success = await store.applyChange(entry.entityType, 'delete', entry.entityId, null);
+      }
+      
+      if (success) {
+        history.markAsApplied(entry.id);
+        toast.success(`Re-applied: ${entry.entityName || 'Item'}`);
+      } else {
+        toast.error('Failed to re-apply change');
+      }
+    } finally {
+      history.setUndoRedoFlag(false);
+    }
+  }, [history, toast, canEdit, store]);
 
-      // Search tags
-      const tagMatch = item.tags && Array.isArray(item.tags) && 
-        item.tags.some(t => t.toLowerCase().includes(lowerQ));
+  // ============= Computed Values =============
 
-      return textMatch || sequenceMatch || tagMatch;
-    };
+  // Memoized data object for ExportPage
+  const exportData = useMemo(() => ({
+    leaderShortcuts: store.leaderShortcuts,
+    raycastShortcuts: store.raycastShortcuts,
+    systemShortcuts: store.systemShortcuts,
+    leaderGroups: store.leaderGroups,
+    apps: store.apps
+  }), [store.leaderShortcuts, store.raycastShortcuts, store.systemShortcuts, store.leaderGroups, store.apps]);
 
-    return {
-        ...data,
-        leaderShortcuts: data.leaderShortcuts.filter(matches),
-        raycastShortcuts: data.raycastShortcuts.filter(matches),
-        systemShortcuts: data.systemShortcuts.filter(matches),
-        apps: (data.apps || data.appsLibrary || []).filter(matches),
-    };
-  }, [data, searchQuery]);
-
-  // Handle highlighting shortcuts from App Library
-  const [highlightedShortcutId, setHighlightedShortcutId] = useState(null);
+  // ============= Render =============
 
   return (
     <Layout 
       activeTab={activeTab} 
-      onTabChange={setActiveTab}
+      onTabChange={handleTabChange}
       onSearch={setSearchQuery}
+      searchQuery={searchQuery}
       user={user}
       theme={theme}
       toggleTheme={toggleTheme}
     >
       <div className="h-full relative">
-        {loading || authLoading ? (
-            <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)] animate-pulse gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[var(--text-muted)]/20"></div>
-                <div>Loading shortcuts...</div>
-            </div>
+        {store.loading || authLoading ? (
+          <LoadingSkeleton />
         ) : (
           <>
+            {/* Leader View */}
             <div className={`h-full ${activeTab === 'leader' ? 'block' : 'hidden'}`}>
-                <LeaderView 
-                    shortcuts={filteredData.leaderShortcuts} 
-                    groups={data.leaderGroups}
-                    apps={data.apps} // Pass apps for icon lookup
-                    searchQuery={searchQuery}
-                    onEdit={handleEdit}
-                    onEditGroup={handleEditGroup}
-                    onCreateGroup={handleCreateGroup}
-                    highlightedShortcutId={highlightedShortcutId}
-                />
+              <LeaderPage 
+                shortcuts={store.leaderShortcuts}
+                groups={store.leaderGroups}
+                apps={store.apps}
+                searchQuery={searchQuery}
+                onEdit={handleEdit}
+                onEditGroup={handleEditGroup}
+                onCreateGroup={handleCreateGroup}
+                highlightedShortcutId={highlightedShortcutId}
+              />
             </div>
             
+            {/* Raycast View */}
             <div className={`h-full ${activeTab === 'raycast' ? 'block' : 'hidden'}`}>
-                <RaycastView 
-                    shortcuts={filteredData.raycastShortcuts} 
-                    apps={data.apps} // Pass apps for icon lookup  
-                    searchQuery={searchQuery}
-                    onEdit={handleEdit}
-                    highlightedShortcutId={highlightedShortcutId}
-                />
+              <RaycastPage 
+                shortcuts={store.raycastShortcuts}
+                apps={store.apps}
+                searchQuery={searchQuery}
+                onEdit={handleEdit}
+                onEditGroup={handleEditGroup}
+                highlightedShortcutId={highlightedShortcutId}
+              />
             </div>
             
+            {/* System View */}
             <div className={`h-full ${activeTab === 'system' ? 'block' : 'hidden'}`}>
-                <SystemView 
-                    shortcuts={filteredData.systemShortcuts} 
-                    apps={data.apps} // Pass apps for icon lookup
-                    onEdit={handleEdit}
-                    onEditGroup={() => {
-                        // System groups are virtual, can't be edited yet
-                        toast.error("System categories cannot be edited yet.");
-                    }}
-                    highlightedShortcutId={highlightedShortcutId}
-                />
+              <SystemPage 
+                shortcuts={store.systemShortcuts}
+                apps={store.apps}
+                searchQuery={searchQuery}
+                onEdit={handleEdit}
+                onEditGroup={handleEditGroup}
+                highlightedShortcutId={highlightedShortcutId}
+              />
             </div>
             
+            {/* Apps View */}
             <div className={`h-full ${activeTab === 'apps' ? 'block' : 'hidden'}`}>
-                <AppsView 
-                    apps={filteredData.apps} 
-                    onEdit={handleEditApp}
-                    onCreate={handleCreateApp}
-                />
+              <AppsPage 
+                apps={store.apps}
+                searchQuery={searchQuery}
+                onEdit={handleEditApp}
+                onCreate={handleCreateApp}
+              />
             </div>
 
+            {/* Export View */}
             <div className={`h-full ${activeTab === 'export' ? 'block' : 'hidden'}`}>
-                <ExportManager 
-                    shortcuts={data}
-                />
+              <ExportPage shortcuts={exportData} />
             </div>
 
+            {/* History View */}
             <div className={`h-full ${activeTab === 'history' ? 'block' : 'hidden'}`}>
-                <HistoryView 
-                    onRevert={handleRevertToEntry}
-                    onReapply={handleReapply}
-                />
+              <HistoryPage 
+                onRevert={handleRevertToEntry}
+                onReapply={handleReapply}
+              />
             </div>
           </>
         )}
 
-        {/* Global Floating Action Button for adding shortcuts */}
+        {/* Floating Action Button for shortcuts */}
         {canEdit && activeTab !== 'apps' && activeTab !== 'history' && activeTab !== 'export' && (
-            <button
-                onClick={handleCreate}
-                className="absolute bottom-8 right-8 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-50"
-                title="Add Shortcut"
-            >
-                <Plus size={24} />
-            </button>
+          <button
+            onClick={handleCreate}
+            className="absolute bottom-8 right-8 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-50"
+            title="Add Shortcut"
+          >
+            <Plus size={24} />
+          </button>
         )}
 
-        {/* Floating Action Button for adding apps in App Library */}
+        {/* Floating Action Button for apps */}
         {canEdit && activeTab === 'apps' && (
-            <button
-                onClick={handleCreateApp}
-                className="absolute bottom-8 right-8 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-50"
-                title="Add App"
-            >
-                <Plus size={24} />
-            </button>
+          <button
+            onClick={handleCreateApp}
+            className="absolute bottom-8 right-8 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-50"
+            title="Add App"
+          >
+            <Plus size={24} />
+          </button>
         )}
+
         {/* Undo/Redo Hint Widget */}
         {canEdit && (activeTab === 'leader' || activeTab === 'raycast' || activeTab === 'system' || activeTab === 'apps' || activeTab === 'history') && (
-            <UndoRedoHint 
-                canUndo={history.canUndo}
-                canRedo={history.canRedo}
-                historyLength={history.history.length}
-                activeTab={activeTab}
-            />
+          <UndoRedoHint 
+            canUndo={history.canUndo}
+            canRedo={history.canRedo}
+            historyLength={history.history.length}
+            activeTab={activeTab}
+            hasRecentActivity={history.hasSessionActivity}
+          />
         )}
 
         {/* Modals */}
         <ShortcutForm 
-            isOpen={isFormOpen} 
-            onClose={() => setIsFormOpen(false)} 
-            shortcut={editingShortcut}
-            shortcutType={getShortcutType()} 
-            onSave={handleSave}
-            onDelete={editingShortcut ? () => handleDelete(editingShortcut.id) : undefined}
-            apps={data.apps} 
+          isOpen={isFormOpen} 
+          onClose={() => setIsFormOpen(false)} 
+          shortcut={editingShortcut}
+          shortcutType={getShortcutType()} 
+          onSave={handleSave}
+          onDelete={editingShortcut ? () => handleDelete(editingShortcut.id) : undefined}
+          apps={store.apps} 
         />
         
         <GroupForm 
-            isOpen={isGroupFormOpen} 
-            onClose={() => setIsGroupFormOpen(false)} 
-            group={editingGroup}
-            onSave={handleSaveGroup}
-            onDelete={editingGroup ? () => handleDeleteGroup(editingGroup.id) : undefined}
-            existingGroups={data.leaderGroups} 
+          isOpen={isGroupFormOpen} 
+          onClose={() => setIsGroupFormOpen(false)} 
+          group={editingGroup}
+          onSave={handleSaveGroup}
+          onDelete={editingGroup ? () => handleDeleteGroup(editingGroup.id) : undefined}
+          existingGroups={store.leaderGroups} 
         />
 
         <AppForm 
-            isOpen={isAppFormOpen}
-            onClose={() => setIsAppFormOpen(false)}
-            app={editingApp}
-            shortcuts={data} 
-            onSave={handleSaveApp}
-            onDelete={editingApp ? () => handleDeleteApp(editingApp.id) : undefined}
-            onEditShortcut={handleEditShortcutFromApp}
+          isOpen={isAppFormOpen}
+          onClose={() => setIsAppFormOpen(false)}
+          app={editingApp}
+          shortcuts={exportData} 
+          onSave={handleSaveApp}
+          onDelete={editingApp ? () => handleDeleteApp(editingApp.id) : undefined}
+          onEditShortcut={handleEditShortcutFromApp}
         />
       </div>
     </Layout>

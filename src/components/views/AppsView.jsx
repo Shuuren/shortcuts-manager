@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { GlassCard } from '../ui/GlassPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Box, Edit2, Link, Keyboard, Command, LayoutGrid } from 'lucide-react';
 import { getCategoryIcon } from '../../config/categories';
 
 // App Icon component with fallback
-const AppIcon = ({ iconUrl, name, size = 48 }) => {
+const AppIcon = memo(function AppIcon({ iconUrl, name, size = 48 }) {
     if (iconUrl) {
         return (
             <img 
@@ -21,10 +21,10 @@ const AppIcon = ({ iconUrl, name, size = 48 }) => {
     }
     
     return <Box size={size * 0.6} className="text-[var(--text-muted)]" />;
-};
+});
 
 // Badge showing where an app is linked
-const LinkBadge = ({ type, count }) => {
+const LinkBadge = memo(function LinkBadge({ type, count }) {
     const badges = {
 
         leader: { icon: LayoutGrid, color: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20' },
@@ -43,7 +43,7 @@ const LinkBadge = ({ type, count }) => {
             {count}
         </span>
     );
-};
+});
 
 export function AppsView({ apps = [], shortcuts = {}, onEdit }) {
     

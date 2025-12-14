@@ -66,9 +66,9 @@ export const ProfileDropdown = ({ onOpenAuthModal }) => {
     return (
       <button
         onClick={() => onOpenAuthModal('login')}
-        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-sm font-medium rounded-lg transition-all flex items-center gap-2"
+        className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white text-sm font-bold rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 active:scale-95 whitespace-nowrap"
       >
-        <User size={16} />
+        <User size={18} className="shrink-0" />
         <span className="hidden sm:inline">Log In</span>
       </button>
     );

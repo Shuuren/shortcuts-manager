@@ -5,14 +5,14 @@
 @layer base {
   :root {
     /* Light Mode default */
-    --bg-app: #f3f4f6; /* gray-100 */
+    --bg-app: #ffffff; /* White background for maximum contrast */
     --text-primary: #171717; /* neutral-900 */
     --text-secondary: rgba(0, 0, 0, 0.85); /* Darker for better visibility */
     --text-muted: rgba(0, 0, 0, 0.65);
     
-    --glass-bg: rgba(255, 255, 255, 0.9); /* Opaque enough to hide busy backgrounds */
-    --glass-bg-hover: rgba(255, 255, 255, 1);
-    --glass-border: rgba(0, 0, 0, 0.15); 
+    --glass-bg: #F3F4F6; /* Gray-100: Distinctly darker than white background */
+    --glass-bg-hover: #E5E7EB; /* Gray-200: Darker hover state */
+    --glass-border: rgba(0, 0, 0, 0.30); 
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
     
     --input-bg: rgba(0, 0, 0, 0.05);

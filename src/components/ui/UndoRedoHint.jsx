@@ -88,9 +88,12 @@ function HintContent({ canUndo, canRedo, onDismiss }) {
   );
 }
 
-export function UndoRedoHint({ canUndo, canRedo, historyLength = 0, activeTab = '' }) {
+export function UndoRedoHint({ canUndo, canRedo, historyLength = 0, activeTab = '', hasRecentActivity = false }) {
   // Don't show if nothing to undo or redo
   if (!canUndo && !canRedo) return null;
+  
+  // Don't show on page load - only show when there's been recent CRUD activity in this session
+  if (!hasRecentActivity) return null;
 
   // Use a key that changes when history length changes (new action added)
   // or when undo/redo state changes or tab changes - this ensures the hint re-appears

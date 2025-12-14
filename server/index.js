@@ -11,22 +11,29 @@ const compression = require('compression');
 const { verifyToken, requireAuth, requireAdmin } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
 const User = require('./models/User');
+const UserData = require('./models/UserData');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const DB_FILE = path.join(__dirname, 'db.json');
+
+// Legacy file paths for migration
+const LEGACY_DB_FILE = path.join(__dirname, 'db.json');
+const LEGACY_DEMO_DB_FILE = path.join(__dirname, 'demo_db.json');
 
 // Enable gzip compression for all responses
 app.use(compression());
 
 // MongoDB Connection String - Replace with your MongoDB Atlas connection string
-// For development, we'll use a local fallback or continue with file-based storage
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/shortcuts_manager';
+
+// Track if MongoDB is connected
+let mongoConnected = false;
 
 // Connect to MongoDB
 mongoose.connect(MONGODB_URI)
   .then(async () => {
     console.log('Connected to MongoDB');
+    mongoConnected = true;
     
     // Create admin user if it doesn't exist
     try {
@@ -49,13 +56,62 @@ mongoose.connect(MONGODB_URI)
       } else {
         console.log('Demo user exists: gabby_demo');
       }
+      
+      // Migrate existing JSON data to MongoDB if not already migrated
+      await migrateDataToMongoDB(admin, demo);
+      
     } catch (err) {
       console.error('Error creating default users:', err);
     }
   })
   .catch(err => {
-    console.warn('MongoDB connection failed, using file-based storage:', err.message);
+    console.error('MongoDB connection failed:', err.message);
+    console.error('Please ensure MONGODB_URI is set correctly in your .env file');
+    process.exit(1); // Exit if MongoDB is not available - we need it now
   });
+
+// Migration function: move data from JSON files to MongoDB
+async function migrateDataToMongoDB(adminUser, demoUser) {
+  try {
+    // Check if admin data exists in MongoDB
+    let adminData = await UserData.findOne({ userId: adminUser._id });
+    if (!adminData && fs.existsSync(LEGACY_DB_FILE)) {
+      console.log('Migrating admin data from db.json to MongoDB...');
+      const fileData = JSON.parse(fs.readFileSync(LEGACY_DB_FILE, 'utf8'));
+      adminData = new UserData({
+        userId: adminUser._id,
+        dataType: 'admin',
+        leaderShortcuts: fileData.leaderShortcuts || [],
+        leaderGroups: fileData.leaderGroups || [],
+        raycastShortcuts: fileData.raycastShortcuts || [],
+        systemShortcuts: fileData.systemShortcuts || [],
+        appsLibrary: fileData.appsLibrary || fileData.apps || []
+      });
+      await adminData.save();
+      console.log('Admin data migrated successfully!');
+    }
+    
+    // Check if demo data exists in MongoDB
+    let demoData = await UserData.findOne({ userId: demoUser._id });
+    if (!demoData && fs.existsSync(LEGACY_DEMO_DB_FILE)) {
+      console.log('Migrating demo data from demo_db.json to MongoDB...');
+      const fileData = JSON.parse(fs.readFileSync(LEGACY_DEMO_DB_FILE, 'utf8'));
+      demoData = new UserData({
+        userId: demoUser._id,
+        dataType: 'demo',
+        leaderShortcuts: fileData.leaderShortcuts || [],
+        leaderGroups: fileData.leaderGroups || [],
+        raycastShortcuts: fileData.raycastShortcuts || [],
+        systemShortcuts: fileData.systemShortcuts || [],
+        appsLibrary: fileData.appsLibrary || fileData.apps || []
+      });
+      await demoData.save();
+      console.log('Demo data migrated successfully!');
+    }
+  } catch (err) {
+    console.error('Error migrating data to MongoDB:', err);
+  }
+}
 
 // Increase limit to handle larger payloads (images)
 app.use(cors());
@@ -75,90 +131,97 @@ app.get('/api/health', (req, res) => {
 // Auth routes
 app.use('/api/auth', authRoutes);
 
-// Database file paths
-const DEMO_DB_FILE = path.join(__dirname, 'demo_db.json');
-
 // Helper to get the actual DB key
 const getDbKey = (type) => {
     if (type === 'apps') return 'appsLibrary';
     return type;
 };
 
-// Helper to get database file path based on user
-const getDbFilePath = (user) => {
-    if (!user) return DEMO_DB_FILE; // Not logged in = demo view
-    if (user.role === 'demo') return DEMO_DB_FILE;
-    if (user.role === 'admin') return DB_FILE;
-    // Client users get their own database
-    return path.join(__dirname, `user_${user.id}_db.json`);
-};
-
-// Helper to read DB (supports user-specific databases)
-const readDb = (user) => {
-    const dbFile = getDbFilePath(user);
+// Helper to get user's data from MongoDB
+const getUserData = async (user) => {
+    const defaultData = { 
+        leaderShortcuts: [], 
+        raycastShortcuts: [], 
+        systemShortcuts: [], 
+        leaderGroups: [], 
+        appsLibrary: [] 
+    };
+    
     try {
-        if (!fs.existsSync(dbFile)) {
-            // Initialize if file doesn't exist
-            return { 
-                leaderShortcuts: [], 
-                raycastShortcuts: [], 
-                systemShortcuts: [], 
-                leaderGroups: [], 
-                appsLibrary: [] 
-            };
-        }
-        const data = fs.readFileSync(dbFile, 'utf8');
-        const parsed = JSON.parse(data);
-        
-        // Ensure appsLibrary exists
-        if (!parsed.appsLibrary && parsed.apps) {
-            parsed.appsLibrary = parsed.apps;
-        }
-        if (!parsed.appsLibrary) {
-            parsed.appsLibrary = [];
+        // Not logged in = show demo data
+        if (!user) {
+            const demoUser = await User.findOne({ role: 'demo' });
+            if (!demoUser) return defaultData;
+            const demoData = await UserData.findOne({ userId: demoUser._id });
+            return demoData ? demoData.toObject() : defaultData;
         }
         
-        return parsed;
+        // Demo user
+        if (user.role === 'demo') {
+            const demoData = await UserData.findOne({ userId: user.id });
+            return demoData ? demoData.toObject() : defaultData;
+        }
+        
+        // Admin user
+        if (user.role === 'admin') {
+            const adminData = await UserData.findOne({ userId: user.id });
+            return adminData ? adminData.toObject() : defaultData;
+        }
+        
+        // Client user - get or create their data
+        let userData = await UserData.findOne({ userId: user.id });
+        if (!userData) {
+            userData = new UserData({
+                userId: user.id,
+                dataType: 'client',
+                ...defaultData
+            });
+            await userData.save();
+        }
+        return userData.toObject();
     } catch (err) {
-        console.error("Error reading DB:", err);
-        // Return default structure on error to prevent crashes accessing properties
-        return { 
-            leaderShortcuts: [], 
-            raycastShortcuts: [], 
-            systemShortcuts: [], 
-            leaderGroups: [], 
-            appsLibrary: [] 
-        };
+        console.error("Error getting user data from MongoDB:", err);
+        return defaultData;
     }
 };
 
-// Helper to write DB atomically (supports user-specific databases)
-const writeDb = (data, user) => {
-    const dbFile = getDbFilePath(user);
-    const tempFile = `${dbFile}.tmp`;
+// Helper to save user's data to MongoDB
+const saveUserData = async (data, user) => {
     try {
-        fs.writeFileSync(tempFile, JSON.stringify(data, null, 2));
-        fs.renameSync(tempFile, dbFile);
+        const updateData = {
+            leaderShortcuts: data.leaderShortcuts || [],
+            leaderGroups: data.leaderGroups || [],
+            raycastShortcuts: data.raycastShortcuts || [],
+            systemShortcuts: data.systemShortcuts || [],
+            appsLibrary: data.appsLibrary || [],
+            updatedAt: new Date()
+        };
+        
+        await UserData.findOneAndUpdate(
+            { userId: user.id },
+            { $set: updateData },
+            { upsert: true, new: true }
+        );
     } catch (err) {
-        console.error("Error writing DB:", err);
-        // Try to clean up temp file if it exists
-        try {
-            if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-        } catch (e) { /* ignore */ }
-        throw err; // Re-throw to be caught by route handler
+        console.error("Error saving user data to MongoDB:", err);
+        throw err;
     }
 };
 
 // GET all shortcuts
-// - Not logged in: See demo database (demo_db.json) - showcase mode
-// - Demo user: See/edit demo database (demo_db.json)
-// - Admin users: See/edit admin database (db.json)
-// - Client users: See/edit their own database (user_{id}_db.json)
-app.get('/api/shortcuts', (req, res) => {
+// - Not logged in: See demo database - showcase mode
+// - Demo user: See/edit demo database
+// - Admin users: See/edit admin database
+// - Client users: See/edit their own database
+app.get('/api/shortcuts', async (req, res) => {
     try {
-        const data = readDb(req.user);
+        const data = await getUserData(req.user);
         res.json({
-            ...data,
+            leaderShortcuts: data.leaderShortcuts || [],
+            leaderGroups: data.leaderGroups || [],
+            raycastShortcuts: data.raycastShortcuts || [],
+            systemShortcuts: data.systemShortcuts || [],
+            appsLibrary: data.appsLibrary || [],
             apps: data.appsLibrary || []
         });
     } catch (err) {
@@ -168,13 +231,13 @@ app.get('/api/shortcuts', (req, res) => {
 });
 
 // Generic create endpoint (all authenticated users)
-app.post('/api/shortcuts/:type', requireAuth, (req, res) => {
+app.post('/api/shortcuts/:type', requireAuth, async (req, res) => {
     const { type } = req.params;
     const dbKey = getDbKey(type);
     const newItem = req.body;
     
     try {
-        const db = readDb(req.user);
+        const db = await getUserData(req.user);
         if (!db[dbKey]) {
             db[dbKey] = [];
         }
@@ -185,7 +248,7 @@ app.post('/api/shortcuts/:type', requireAuth, (req, res) => {
         }
 
         db[dbKey].push(newItem);
-        writeDb(db, req.user);
+        await saveUserData(db, req.user);
         res.json(newItem);
     } catch (err) {
         console.error(`POST /api/shortcuts/${type} error:`, err);
@@ -194,13 +257,13 @@ app.post('/api/shortcuts/:type', requireAuth, (req, res) => {
 });
 
 // Generic update endpoint (all authenticated users)
-app.put('/api/shortcuts/:type/:id', requireAuth, (req, res) => {
+app.put('/api/shortcuts/:type/:id', requireAuth, async (req, res) => {
     const { type, id } = req.params;
     const dbKey = getDbKey(type);
     const updatedItem = req.body;
 
     try {
-        const db = readDb(req.user);
+        const db = await getUserData(req.user);
         if (!db[dbKey]) {
             return res.status(400).json({ error: 'Invalid type or collection missing' });
         }
@@ -211,7 +274,7 @@ app.put('/api/shortcuts/:type/:id', requireAuth, (req, res) => {
         }
 
         db[dbKey][index] = { ...db[dbKey][index], ...updatedItem };
-        writeDb(db, req.user);
+        await saveUserData(db, req.user);
         res.json(db[dbKey][index]);
     } catch (err) {
         console.error(`PUT /api/shortcuts/${type}/${id} error:`, err);
@@ -220,18 +283,18 @@ app.put('/api/shortcuts/:type/:id', requireAuth, (req, res) => {
 });
 
 // Generic delete endpoint (all authenticated users)
-app.delete('/api/shortcuts/:type/:id', requireAuth, (req, res) => {
+app.delete('/api/shortcuts/:type/:id', requireAuth, async (req, res) => {
     const { type, id } = req.params;
     const dbKey = getDbKey(type);
     
     try {
-        const db = readDb(req.user);
+        const db = await getUserData(req.user);
         if (!db[dbKey]) {
             return res.status(400).json({ error: 'Invalid type' });
         }
 
         db[dbKey] = db[dbKey].filter(item => item.id !== id);
-        writeDb(db, req.user);
+        await saveUserData(db, req.user);
         res.json({ success: true });
     } catch (err) {
         console.error(`DELETE /api/shortcuts/${type}/${id} error:`, err);

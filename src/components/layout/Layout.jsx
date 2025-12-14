@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, memo } from 'react';
 import { GlassPanel } from '../ui/GlassPanel';
 import { LayoutGrid, Command, Keyboard, Menu, X, Box, ChevronLeft, ChevronRight, Sparkles, Sun, Moon, History, FileDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { ProfileDropdown } from '../ui/ProfileDropdown';
 import { AuthModal } from '../ui/AuthModal';
+import { SearchBar } from '../ui/SearchBar';
 
 const NAV_ITEMS = [
   { id: 'leader', label: 'Leader Key', icon: LayoutGrid, headerLabel: 'Leader Key View' },
@@ -17,7 +18,7 @@ const NAV_ITEMS = [
   { id: 'history', label: 'History', icon: History, headerLabel: 'Change History', editorsOnly: true },
 ];
 
-export function Layout({ children, activeTab, onTabChange, theme, toggleTheme }) {
+export const Layout = memo(function Layout({ children, activeTab, onTabChange, theme, toggleTheme, onSearch, searchQuery = '' }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true); // Desktop collapsed state
   const [sidebarHovered, setSidebarHovered] = useState(false);
@@ -254,13 +255,17 @@ export function Layout({ children, activeTab, onTabChange, theme, toggleTheme })
       </GlassPanel>
 
       {/* Main Content */}
-      <GlassPanel className="flex-1 h-full overflow-hidden relative border-none bg-[var(--glass-bg)] flex flex-col mt-14 md:mt-0">
+      <GlassPanel className="flex-1 h-full overflow-hidden relative border-gray-300 dark:border-white/10 bg-[var(--glass-bg)] flex flex-col mt-14 md:mt-0">
         {/* Top Bar */}
-        <div className="p-4 border-b border-[var(--glass-border)] flex justify-between items-center backdrop-blur-md z-20">
+        <div className="p-4 border-b border-gray-400 dark:border-[var(--glass-border)] flex justify-between items-center backdrop-blur-md z-20">
           <h2 className="text-xl font-bold text-[var(--text-primary)]">
             {visibleNavItems.find(i => i.id === activeTab)?.headerLabel || `${activeTab} View`}
           </h2>
           <div className="flex items-center gap-3">
+            {/* Search Bar - only show on main views */}
+            {(activeTab === 'leader' || activeTab === 'raycast' || activeTab === 'system' || activeTab === 'apps') && (
+              <SearchBar value={searchQuery} onChange={onSearch} />
+            )}
             <div id="top-bar-actions" />
             <div className="hidden md:block">
               <ProfileDropdown onOpenAuthModal={openAuthModal} />
@@ -280,4 +285,4 @@ export function Layout({ children, activeTab, onTabChange, theme, toggleTheme })
       />
     </div>
   );
-}
+});

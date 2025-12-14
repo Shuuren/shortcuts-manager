@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Check } from 'lucide-react';
+import { Download, Check, LayoutGrid, Zap, Monitor, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function ExportManager({ shortcuts }) {
@@ -125,114 +125,177 @@ export function ExportManager({ shortcuts }) {
   };
 
   const typeOptions = [
-    { id: 'leader', label: 'Leader Key', color: 'from-purple-500 to-pink-500' },
-    { id: 'raycast', label: 'Raycast', color: 'from-orange-500 to-red-500' },
-    { id: 'system', label: 'System', color: 'from-blue-500 to-cyan-500' },
+    { 
+      id: 'leader', 
+      label: 'Leader Key', 
+      icon: LayoutGrid,
+      description: 'Complex sequence-based shortcuts',
+      color: 'from-purple-500 to-pink-500', 
+      bg: 'bg-purple-500/10',
+      border: 'border-purple-500/20'
+    },
+    { 
+      id: 'raycast', 
+      label: 'Raycast', 
+      icon: Zap,
+      description: 'Quick launcher commands & scripts',
+      color: 'from-orange-500 to-red-500', 
+      bg: 'bg-orange-500/10',
+      border: 'border-orange-500/20'
+    },
+    { 
+      id: 'system', 
+      label: 'System', 
+      icon: Monitor,
+      description: 'Global macOS system hotkeys',
+      color: 'from-blue-500 to-cyan-500', 
+      bg: 'bg-blue-500/10',
+      border: 'border-blue-500/20'
+    },
   ];
 
   return (
-    <div className="h-full flex flex-col">
 
-      {/* Selection Options */}
-      <div className="flex-1">
-        <p className="text-sm text-[var(--text-secondary)] mb-4">Select shortcut types to export:</p>
+    <div className="h-full w-full flex flex-col items-center p-4 sm:p-6 lg:p-12 overflow-hidden">
+      <div className="w-full max-w-6xl h-full flex flex-col">
         
-        <div className="space-y-3">
-          {typeOptions.map(option => (
-            <motion.button
-              key={option.id}
-              onClick={() => toggleType(option.id)}
-              className={`
-                w-full flex items-center gap-4 p-4 rounded-xl border transition-all
-                ${selectedTypes[option.id] 
-                  ? option.id === 'leader' ? 'border-purple-500/50 bg-purple-500/10' :
-                    option.id === 'raycast' ? 'border-orange-500/50 bg-orange-500/10' :
-                    'border-blue-500/50 bg-blue-500/10'
-                  : 'border-[var(--glass-border)] bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'
-                }
-              `}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-            >
-              {/* Checkbox */}
-              <div className={`
-                w-6 h-6 rounded-lg flex items-center justify-center transition-all
-                ${selectedTypes[option.id]
-                  ? `bg-gradient-to-br ${option.color}`
-                  : 'border-2 border-[var(--text-muted)]'
-                }
-              `}>
-                <AnimatePresence>
-                  {selectedTypes[option.id] && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                    >
-                      <Check size={14} className="text-white" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Label */}
-              <div className="flex-1 text-left">
-                <span className="font-medium text-[var(--text-primary)]">{option.label}</span>
-              </div>
-
-              {/* Count Badge */}
-              <span className={`
-                px-2.5 py-1 rounded-lg text-xs font-medium
-                ${selectedTypes[option.id]
-                  ? `bg-gradient-to-br ${option.color} text-white`
-                  : 'bg-[var(--glass-bg-hover)] text-[var(--text-muted)]'
-                }
-              `}>
-                {getShortcutCount(option.id)} shortcuts
-              </span>
-            </motion.button>
-          ))}
+        {/* Header */}
+        <div className="text-center mb-4 flex-none">
+          <p className="text-sm text-[var(--text-secondary)]">Select the collections you want to include in your markdown export</p>
         </div>
 
-        {/* Summary */}
-        <div className="mt-6 p-4 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)]">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-[var(--text-muted)]">Total to export:</span>
-            <span className="font-semibold text-[var(--text-primary)]">{getTotalSelected()} shortcuts</span>
+        {/* Dynamic Flex Selection */}
+        <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-6 min-h-0 w-full mb-4">
+          {typeOptions.map(option => {
+            const isSelected = selectedTypes[option.id];
+            const Icon = option.icon;
+            const count = getShortcutCount(option.id);
+            
+            return (
+              <motion.button
+                key={option.id}
+                onClick={() => toggleType(option.id)}
+                className={`
+                  relative overflow-hidden group flex flex-row lg:flex-col items-center lg:items-start 
+                  p-4 sm:p-5 lg:p-8 rounded-2xl lg:rounded-3xl border-2 transition-all duration-300
+                  flex-1 w-full text-left min-h-[100px]
+                  ${isSelected
+                    ? `${option.bg} ${option.border}`.replace('border-opacity-20', '') + ` ring-2 lg:ring-4 ring-offset-2 lg:ring-offset-4 ring-offset-[var(--bg-primary)] ring-${option.color.split('-')[1]}-400/30`
+                    : 'bg-[var(--glass-panel)] border-[var(--glass-border)] opacity-80 hover:opacity-100 hover:border-[var(--text-muted)]'
+                  }
+                  ${isSelected ? '' : 'grayscale-[0.5] hover:grayscale-0'}
+                `}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {/* Background Gradient Blob */}
+                {isSelected && (
+                  <div className={`absolute -right-6 -bottom-6 lg:-right-20 lg:-bottom-20 w-32 h-32 lg:w-64 lg:h-64 rounded-full blur-2xl lg:blur-3xl opacity-20 bg-gradient-to-br ${option.color}`} />
+                )}
+
+                {/* Icon */}
+                <div className={`
+                  p-3 rounded-xl lg:rounded-2xl transition-colors shrink-0 mr-4 lg:mr-0 lg:mb-auto
+                  ${isSelected ? 'bg-white/20 dark:bg-black/20 text-[var(--text-primary)]' : 'bg-[var(--glass-border)] text-[var(--text-muted)]'}
+                `}>
+                  <Icon className="w-6 h-6 lg:w-8 lg:h-8" />
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 z-10 min-w-0 lg:w-full flex flex-col justify-center lg:justify-end h-full">
+                  <div className="flex items-center gap-2 lg:block lg:mb-1">
+                    <h3 className={`font-bold text-lg lg:text-3xl truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                      {option.label}
+                    </h3>
+                    
+                    {/* Badge - Visible on Mobile/Tablet/Split View */}
+                    <span className={`lg:hidden text-xs font-bold px-2 py-0.5 rounded-md shrink-0 ${isSelected ? 'bg-white/20 text-current' : 'bg-black/5 dark:bg-white/5 text-[var(--text-muted)]'}`}>
+                      {count}
+                    </span>
+                  </div>
+                  
+                  <p className="text-sm lg:text-base text-[var(--text-muted)] leading-relaxed line-clamp-2 mt-0.5 lg:mt-2">
+                    {option.description}
+                  </p>
+
+                  {/* Desktop Count Footer */}
+                  <div className="hidden lg:flex w-full pt-6 mt-auto border-t border-[var(--text-muted)]/10 justify-between items-end z-10">
+                    <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] mb-1">Items</span>
+                    <span className={`text-4xl font-bold tracking-tight ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
+                      {count}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Checkbox */}
+                <div className={`
+                  ml-4 lg:ml-0 lg:absolute lg:top-8 lg:right-8
+                  w-6 h-6 lg:w-8 lg:h-8 rounded-full flex items-center justify-center transition-all shrink-0
+                  ${isSelected
+                    ? `bg-gradient-to-br ${option.color} text-white shadow-lg`
+                    : 'border-2 border-[var(--text-muted)]'
+                  }
+                `}>
+                  <AnimatePresence>
+                    {isSelected && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                      >
+                        <Check className="w-3.5 h-3.5 lg:w-[18px] lg:h-[18px]" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+        
+        {/* Footer / Action Area */}
+        <div className="glass-panel p-4 lg:p-8 rounded-2xl lg:rounded-3xl flex flex-row items-center justify-between gap-4 border border-[var(--glass-border)] bg-[var(--glass-bg)]/50 backdrop-blur-xl flex-none">
+          <div className="flex items-center gap-3 lg:gap-6">
+            <div className="p-2 lg:p-4 bg-[var(--surface-highlight)] rounded-xl lg:rounded-2xl shrink-0">
+              <FileText className="w-5 h-5 lg:w-8 lg:h-8 text-[var(--text-secondary)]" />
+            </div>
+            <div className="text-left">
+              <div className="text-[10px] lg:text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Total</div>
+              <div className="text-xl lg:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-500">
+                {getTotalSelected()}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Export Button */}
-      <div className="mt-6">
-        <motion.button
-          onClick={handleExport}
-          disabled={getTotalSelected() === 0}
-          className={`
-            w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium
-            transition-all duration-200
-            ${getTotalSelected() > 0
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600'
-              : 'bg-[var(--glass-bg)] text-[var(--text-muted)] cursor-not-allowed'
-            }
-          `}
-          whileHover={getTotalSelected() > 0 ? { scale: 1.02 } : {}}
-          whileTap={getTotalSelected() > 0 ? { scale: 0.98 } : {}}
-        >
-          {exportStatus === 'success' ? (
-            <>
-              <Check size={18} />
-              <span>Exported Successfully!</span>
-            </>
-          ) : exportStatus === 'error' ? (
-            <span>Please select at least one type</span>
-          ) : (
-            <>
-              <Download size={18} />
-              <span>Export as Markdown</span>
-            </>
-          )}
-        </motion.button>
+          <motion.button
+            onClick={handleExport}
+            disabled={getTotalSelected() === 0}
+            className={`
+              flex flex-1 sm:flex-none items-center gap-2 lg:gap-3 py-3 lg:py-5 px-6 lg:px-10 rounded-xl lg:rounded-2xl font-bold text-sm lg:text-xl shadow-xl
+              transition-all duration-200 justify-center
+              ${getTotalSelected() > 0
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 hover:shadow-emerald-500/25 hover:-translate-y-1'
+                : 'bg-[var(--surface-highlight)] text-[var(--text-muted)] cursor-not-allowed'
+              }
+            `}
+            whileTap={getTotalSelected() > 0 ? { scale: 0.98 } : {}}
+          >
+            {exportStatus === 'success' ? (
+              <>
+                <Check className="w-4 h-4 lg:w-6 lg:h-6" />
+                <span className="whitespace-nowrap">Saved</span>
+              </>
+            ) : exportStatus === 'error' ? (
+              <span className="whitespace-nowrap">Select Items</span>
+            ) : (
+              <>
+                <Download className="w-4 h-4 lg:w-6 lg:h-6" />
+                <span className="whitespace-nowrap">Export</span>
+              </>
+            )}
+          </motion.button>
+        </div>
+
       </div>
     </div>
   );

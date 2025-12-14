@@ -1,13 +1,13 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, memo } from 'react';
 import { GlassCard, GlassPanel } from '../ui/GlassPanel';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Folder, File, ArrowLeft, ArrowRight, Box, Zap, Search, Edit2, Plus, Settings } from 'lucide-react';
+import { ChevronRight, Folder, File, ArrowLeft, ArrowRight, Box, Zap, Search, Edit2, Plus, Settings, Home } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getAppIcon } from '../../config/icons';
 
 
 // App Icon component with fallback - supports custom iconUrl
-const AppIcon = ({ name, customUrl, size = 24, className = "" }) => {
+const AppIcon = memo(function AppIcon({ name, customUrl, size = 24, className = "" }) {
     // Use custom URL if provided, otherwise look up from global config
     const iconUrl = customUrl || getAppIcon(name);
     
@@ -26,10 +26,10 @@ const AppIcon = ({ name, customUrl, size = 24, className = "" }) => {
     }
     
     return <Box size={size * 0.7} className="text-[var(--text-muted)]" />;
-};
+});
 
 // Generic icons for categories without specific icons
-const GenericCategoryIcon = ({ name, size = 32 }) => {
+const GenericCategoryIcon = memo(function GenericCategoryIcon({ name, size = 32 }) {
     const lower = name?.toLowerCase() || '';
     
     if (lower.includes('quick') || lower.includes('action')) {
@@ -40,10 +40,11 @@ const GenericCategoryIcon = ({ name, size = 32 }) => {
     }
     
     return <Folder size={size} className="text-blue-400" />;
-};
+});
 
 // Leader Key Icon - box with filled circle in the middle
-const LeaderKeyIcon = ({ className = "", size = 20 }) => (
+const LeaderKeyIcon = memo(function LeaderKeyIcon({ className = "", size = 20 }) {
+  return (
     <svg 
         width={size} 
         height={size} 
@@ -67,7 +68,8 @@ const LeaderKeyIcon = ({ className = "", size = 20 }) => (
             fill="currentColor"
         />
     </svg>
-);
+  );
+});
 
 // Helper to build tree structure from flat shortcuts using dynamic groups
 const buildTree = (shortcuts, groupsConfig) => {
@@ -305,6 +307,10 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
         }
     };
 
+    const handleGoHome = () => {
+        setPath(['root']);
+    };
+
     // Separate groups from end-nodes (shortcuts)
     const groupNodes = [];
     const endNodes = [];
@@ -365,11 +371,21 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
     const hasShortcuts = endNodes.length > 0;
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar pr-2 pt-4">
-            {/* Back button */}
+        <div className="h-full overflow-y-auto custom-scrollbar pr-2 pt-4 pb-24">
+            {/* Navigation buttons */}
             {path.length > 1 && (
                 <div className="flex items-center gap-3 mb-4">
-                    <button onClick={handleBack} className="glass-button p-2 rounded-full">
+                    {/* Home button - shows when at least 2 levels deep */}
+                    {path.length > 2 && (
+                        <button 
+                            onClick={handleGoHome} 
+                            className="glass-button p-2 rounded-full"
+                            title="Go to root"
+                        >
+                            <Home size={16} />
+                        </button>
+                    )}
+                    <button onClick={handleBack} className="glass-button p-2 rounded-full" title="Go back">
                         <ArrowLeft size={16} />
                     </button>
                     <span className="text-sm text-[var(--text-muted)]">

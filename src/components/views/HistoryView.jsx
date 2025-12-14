@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { History, RotateCcw, ChevronDown, ChevronUp, Clock, Trash2, ArrowLeft, Package, Keyboard, Command, LayoutGrid, Undo2, Redo2, X } from 'lucide-react';
 import { useHistory } from '../../context/HistoryContext';
@@ -63,7 +63,7 @@ function formatTime(isoString) {
   });
 }
 
-function ChangeDetail({ label, before, after }) {
+const ChangeDetail = memo(function ChangeDetail({ label, before, after }) {
   if (before === after) return null;
   
   return (
@@ -89,9 +89,9 @@ function ChangeDetail({ label, before, after }) {
       </div>
     </div>
   );
-}
+});
 
-function HistoryEntry({ entry, onRevert, onReapply, onDelete }) {
+const HistoryEntry = memo(function HistoryEntry({ entry, onRevert, onReapply, onDelete }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const TypeIcon = TYPE_ICONS[entry.entityType] || Package;
   
@@ -279,11 +279,21 @@ function HistoryEntry({ entry, onRevert, onReapply, onDelete }) {
       </AnimatePresence>
     </motion.div>
   );
-}
+});
 
 export function HistoryView({ onRevert, onReapply }) {
-  const { getHistory, canUndo, canRedo, clearHistory, deleteEntry } = useHistory();
+  const { getHistory, canUndo, clearHistory, deleteEntry } = useHistory();
+  const [confirmClear, setConfirmClear] = useState(false);
   const historyEntries = getHistory();
+  
+  // Reset confirmation state after 3 seconds if not clicked
+  useEffect(() => {
+    let timeout;
+    if (confirmClear) {
+      timeout = setTimeout(() => setConfirmClear(false), 3000);
+    }
+    return () => clearTimeout(timeout);
+  }, [confirmClear]);
   
   // Group entries by date
   const groupedHistory = historyEntries.reduce((groups, entry) => {
@@ -305,6 +315,15 @@ export function HistoryView({ onRevert, onReapply }) {
     new Date(b) - new Date(a)
   );
 
+  const handleClearClick = () => {
+    if (confirmClear) {
+      clearHistory();
+      setConfirmClear(false);
+    } else {
+      setConfirmClear(true);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Action Bar */}
@@ -312,16 +331,21 @@ export function HistoryView({ onRevert, onReapply }) {
         <p className="text-sm text-[var(--text-muted)]">
           {historyEntries.length} change{historyEntries.length !== 1 ? 's' : ''} recorded
           {canUndo && <span className="ml-2">• ⌘Z to undo</span>}
-          {canRedo && <span className="ml-2">• ⌘⇧Z to redo</span>}
+
         </p>
         
         {historyEntries.length > 0 && (
           <button
-            onClick={clearHistory}
-            className="px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-1.5"
+            onClick={handleClearClick}
+            className={`
+              px-3 py-1.5 text-sm rounded-lg transition-all flex items-center gap-1.5
+              ${confirmClear 
+                ? 'bg-red-500 text-white hover:bg-red-600' 
+                : 'text-red-400 hover:bg-red-500/10'}
+            `}
           >
             <Trash2 size={14} />
-            Clear History
+            {confirmClear ? "Are you sure?" : "Clear History"}
           </button>
         )}
       </div>

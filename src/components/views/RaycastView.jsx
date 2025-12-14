@@ -1,12 +1,13 @@
 import { GlassCard } from '../ui/GlassPanel';
 import { motion } from 'framer-motion';
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { Command, Box, Type, ArrowRight, Edit2, Settings } from 'lucide-react';
 import { getAppIcon } from '../../config/icons';
 
 
 // Diamond icon for Hyper key (like Raycast uses)
-const HyperIcon = ({ size = 12, className = "" }) => (
+const HyperIcon = memo(function HyperIcon({ size = 12, className = "" }) {
+  return (
     <svg 
         width={size} 
         height={size} 
@@ -16,7 +17,8 @@ const HyperIcon = ({ size = 12, className = "" }) => (
     >
         <path d="M8 0L16 8L8 16L0 8L8 0Z" />
     </svg>
-);
+  );
+});
 
 // Key symbol mapping - modifiers
 const modifierSymbols = {
@@ -52,7 +54,7 @@ const specialKeySymbols = {
 const modifiers = ['Cmd', 'Command', 'Ctrl', 'Control', 'Option', 'Alt', 'Shift'];
 
 // App Icon component with fallback - supports custom iconUrl
-const AppIcon = ({ name, customUrl, size = 24, className = "" }) => {
+const AppIcon = memo(function AppIcon({ name, customUrl, size = 24, className = "" }) {
     // Use custom URL if provided, otherwise look up from global config
     const iconUrl = customUrl || getAppIcon(name);
     
@@ -71,10 +73,10 @@ const AppIcon = ({ name, customUrl, size = 24, className = "" }) => {
     }
     
     return <Box size={size * 0.7} className="text-[var(--text-muted)]" />;
-};
+});
 
 // Helper to render keys visually with separate boxes
-const KeyVisual = ({ keys }) => {
+const KeyVisual = memo(function KeyVisual({ keys }) {
     if (!keys) return <span className="text-[var(--text-muted)] text-xs">No key</span>;
     
     // Special action patterns to render as badges
@@ -195,7 +197,7 @@ const KeyVisual = ({ keys }) => {
             })}
         </div>
     );
-};
+});
 
 export function RaycastView({ shortcuts, apps = [], onEdit, onEditGroup }) {
     // Create app lookup map
@@ -225,7 +227,7 @@ export function RaycastView({ shortcuts, apps = [], onEdit, onEditGroup }) {
         <div className="flex flex-col md:flex-row h-full gap-6 md:overflow-hidden overflow-y-auto custom-scrollbar">
             
             {/* Left Column: Commands grouped by Extension */}
-            <div className="flex-none md:flex-1 flex flex-col gap-4 md:overflow-y-auto pl-1 pr-3 custom-scrollbar pt-4">
+            <div className="flex-none md:flex-1 flex flex-col gap-4 md:overflow-y-auto pl-1 pr-3 custom-scrollbar pt-4 pb-24">
                 <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 py-2 px-3 backdrop-blur-md bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl">
                      <Command size={16} className="text-blue-400" />
                      <h3 className="text-lg font-bold text-[var(--text-primary)]">Commands</h3>
@@ -334,7 +336,7 @@ export function RaycastView({ shortcuts, apps = [], onEdit, onEditGroup }) {
             <div className="w-full h-px md:w-px md:h-auto bg-[var(--glass-border)] my-4 md:my-0 flex-shrink-0" />
 
             {/* Right Column: Aliases */}
-            <div className="flex-none md:flex-1 flex flex-col gap-4 md:overflow-y-auto pl-1 pr-3 custom-scrollbar pt-4">
+            <div className="flex-none md:flex-1 flex flex-col gap-4 md:overflow-y-auto pl-1 pr-3 custom-scrollbar pt-4 pb-24">
                 <div className="flex items-center gap-2 mb-2 sticky top-0 z-10 py-2 px-3 backdrop-blur-md bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl">
                      <Type size={16} className="text-purple-400" />
                      <h3 className="text-lg font-bold text-[var(--text-primary)]">Aliases</h3>

@@ -1,20 +1,93 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 
 const HistoryContext = createContext();
 
 const MAX_HISTORY_SIZE = 100; // Maximum number of history entries to keep
+const HISTORY_STORAGE_KEY = 'shortcuts_manager_history';
+const HISTORY_INDEX_KEY = 'shortcuts_manager_history_index';
+const HISTORY_USER_KEY = 'shortcuts_manager_history_user';
+
+// Helper to save history to localStorage
+const saveHistoryToStorage = (history, index, userId) => {
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+    localStorage.setItem(HISTORY_INDEX_KEY, String(index));
+    if (userId !== undefined) {
+      localStorage.setItem(HISTORY_USER_KEY, userId || '');
+    }
+  } catch (e) {
+    console.error('Failed to save history to localStorage:', e);
+  }
+};
 
 export function HistoryProvider({ children }) {
-  const [history, setHistory] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(-1);
+  // Initialize from localStorage using lazy initialization
+  const [history, setHistory] = useState(() => {
+    try {
+      const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Failed to load history from localStorage:', e);
+    }
+    return [];
+  });
+  
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    try {
+      const storedIndex = localStorage.getItem(HISTORY_INDEX_KEY);
+      if (storedIndex !== null) {
+        return parseInt(storedIndex, 10);
+      }
+      // If no stored index but we have history, set to end
+      const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+      if (stored) {
+        const history = JSON.parse(stored);
+        return history.length - 1;
+      }
+    } catch (e) {
+      console.error('Failed to load history index from localStorage:', e);
+    }
+    return -1;
+  });
+  
   const [isUndoRedoInProgress, setIsUndoRedoInProgress] = useState(false);
   
+  // Track if any CRUD activity has happened in this session
+  // This prevents the undo/redo tooltip from showing on page refresh when history exists from previous sessions
+  const [hasSessionActivity, setHasSessionActivity] = useState(false);
+  
   // Track the current user to clear history when user changes
-  const [currentUserId, setCurrentUserId] = useState(null);
+  // Initialize from localStorage so we remember who the history belongs to
+  const [currentUserId, setCurrentUserId] = useState(() => {
+    try {
+      const stored = localStorage.getItem(HISTORY_USER_KEY);
+      return stored || null;
+    } catch {
+      return null;
+    }
+  });
+  
+  // Track if this is the initial render to avoid unnecessary saves
+  const hasInitialized = useRef(false);
+
+  // Persist history to localStorage whenever it changes
+  useEffect(() => {
+    // Skip the very first render (initial load from localStorage)
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      return;
+    }
+    saveHistoryToStorage(history, currentIndex);
+  }, [history, currentIndex]);
 
   // Add a new change to history
   const addChange = useCallback((change) => {
     if (isUndoRedoInProgress) return;
+    
+    // Mark that we have session activity (for showing undo/redo tooltip)
+    setHasSessionActivity(true);
 
     setHistory(prev => {
       // Remove any "future" entries if we're not at the end
@@ -106,11 +179,17 @@ export function HistoryProvider({ children }) {
 
   // Set the current user - clears history when user changes
   const setCurrentUser = useCallback((userId) => {
-    if (userId !== currentUserId) {
-      // User changed, clear history
+    const normalizedUserId = userId || null;
+    const normalizedCurrentUserId = currentUserId || null;
+    
+    // Only clear history if the user actually changed (not on initial load with same user)
+    if (normalizedUserId !== normalizedCurrentUserId) {
+      // User changed, clear history and save new user ID
       setHistory([]);
       setCurrentIndex(-1);
-      setCurrentUserId(userId);
+      setCurrentUserId(normalizedUserId);
+      // Save the new user ID to localStorage
+      saveHistoryToStorage([], -1, normalizedUserId);
     }
   }, [currentUserId]);
 
@@ -131,6 +210,7 @@ export function HistoryProvider({ children }) {
       clearHistory,
       isUndoRedoInProgress,
       setUndoRedoFlag,
+      hasSessionActivity,
       setCurrentUser,
       deleteEntry: (entryId) => {
         setHistory(prev => {

@@ -1,13 +1,14 @@
 import { GlassCard } from '../ui/GlassPanel';
 import { motion } from 'framer-motion';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, memo } from 'react';
 import { Monitor, AppWindow, Keyboard, Settings, Camera, Folder, Zap, Volume2, Layout, Terminal, Box, Edit2, Pencil } from 'lucide-react';
 // Icon mapping for categories (Removed, now using centralized config)
 import { getCategoryIcon } from '../../config/categories';
 import { getAppIcon } from '../../config/icons';
 
 // Diamond icon for Hyper key
-const HyperIcon = ({ size = 12, className = "" }) => (
+const HyperIcon = memo(function HyperIcon({ size = 12, className = "" }) {
+  return (
     <svg 
         width={size} 
         height={size} 
@@ -17,7 +18,8 @@ const HyperIcon = ({ size = 12, className = "" }) => (
     >
         <path d="M8 0L16 8L8 16L0 8L8 0Z" />
     </svg>
-);
+  );
+});
 
 // Key symbol mapping - modifiers
 const modifierSymbols = {
@@ -53,7 +55,7 @@ const specialKeySymbols = {
 const modifiers = ['Cmd', 'Command', 'Ctrl', 'Control', 'Option', 'Alt', 'Shift'];
 
 // App Icon component with fallback - supports custom iconUrl
-const AppIcon = ({ name, customUrl, size = 24 }) => {
+const AppIcon = memo(function AppIcon({ name, customUrl, size = 24 }) {
     // Use custom URL if provided, otherwise look up from global config
     const iconUrl = customUrl || getAppIcon(name);
     
@@ -72,7 +74,8 @@ const AppIcon = ({ name, customUrl, size = 24 }) => {
     }
     
     return <Box size={size * 0.7} className="text-[var(--text-muted)]" />;
-};
+});
+
 // Special action patterns to render as badges
 const specialActionPatterns = [
     { pattern: /^tap twice$|^double tap$|^2x tap$/i, icon: '⟲', label: 'Tap ×2', color: 'from-amber-500/30 to-orange-500/30', border: 'border-amber-500/50', text: 'text-amber-700 dark:text-amber-300' },
@@ -91,7 +94,7 @@ const getSpecialAction = (keyPart) => {
 };
 
 // Helper to render keys visually - defined outside component to avoid recreation
-const KeyVisual = ({ keys }) => {
+const KeyVisual = memo(function KeyVisual({ keys }) {
     if (!keys) return <span className="text-[var(--text-muted)] text-xs">No key</span>;
     
     // If there's no + separator, check if it's a special pattern or display as single badge
@@ -192,7 +195,7 @@ const KeyVisual = ({ keys }) => {
             })}
         </div>
     );
-};
+});
 
 export function SystemView({ shortcuts, apps = [], onEdit, onEditGroup, highlightedShortcutId }) {
     // Create app lookup map
@@ -234,7 +237,7 @@ export function SystemView({ shortcuts, apps = [], onEdit, onEditGroup, highligh
     const sortedCategories = Object.keys(groups).sort();
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar pr-2 pb-20">
+        <div className="h-full overflow-y-auto custom-scrollbar pr-2 pb-32">
             <div className="grid grid-cols-1 gap-8">
                 {sortedCategories.map((groupName) => {
                     const items = groups[groupName];
@@ -262,14 +265,15 @@ export function SystemView({ shortcuts, apps = [], onEdit, onEditGroup, highligh
                                     </div>
                                 </div>
                                 <h3 className="text-xl font-bold text-[var(--text-primary)] transition-colors">{groupName}</h3>
-                <span className="text-xs bg-[var(--surface-highlight)] border border-[var(--surface-border-strong)] px-2 py-0.5 rounded-full text-[var(--text-secondary)]">{items.length}</span>
+                                <span className="text-xs bg-[var(--surface-highlight)] border border-[var(--surface-border-strong)] px-2 py-0.5 rounded-full text-[var(--text-secondary)]">{items.length}</span>
                                 <div className="ml-auto opacity-0 group-hover/header:opacity-100 transition-opacity p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer">
                                     <Settings size={14} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" />
                                 </div>
                             </div>
 
                             <div className="flex flex-col gap-2">
-                                <div className="grid grid-cols-12 gap-4 px-4 py-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                                {/* Desktop Header */}
+                                <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
                                     <div className="col-span-3">Key Combo</div>
                                     <div className="col-span-3">App</div>
                                     <div className="col-span-4">Action</div>
@@ -291,46 +295,59 @@ export function SystemView({ shortcuts, apps = [], onEdit, onEditGroup, highligh
                                         className={highlightedShortcutId === item.id ? 'z-20 ring-2 ring-blue-500/50 rounded-xl' : ''}
                                     >
                                         <GlassCard 
-                                            className="grid grid-cols-12 gap-4 items-center py-3 hover:bg-[var(--glass-bg-hover)] transition-colors cursor-pointer group relative"
+                                            className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center py-3 hover:bg-[var(--glass-bg-hover)] transition-colors cursor-pointer group relative"
                                             onClick={() => onEdit && onEdit(item)}
                                         >
                                             {/* Edit indicator */}
-                                            <div className="absolute top-1/2 -translate-y-1/2 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer">
+                                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer z-10">
                                                 <Edit2 size={14} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" />
                                             </div>
                                             
-                                            <div className="col-span-3">
-                                                <KeyVisual keys={item.keys} />
-                                            </div>
-                                            <div className="col-span-3 flex items-center gap-2">
+                                            {/* Mobile: Top Row with App and Action */}
+                                            <div className="md:col-span-3 md:order-2 flex items-center gap-2">
                                                 {(() => {
                                                     const linkedApp = appMap[item.appId];
                                                     const appName = linkedApp?.name || item.appOrContext || '—';
                                                     const finalIconUrl = linkedApp?.iconUrl || item.iconUrl;
                                                     return (
                                                         <>
-                                                                        <div 
-                                                    className="w-6 h-6 rounded bg-[var(--input-bg)] flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer relative group/icon"
-                                                    onClick={(e) => {
+                                                            <div 
+                                                                className="w-8 h-8 md:w-6 md:h-6 rounded bg-[var(--input-bg)] flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer relative group/icon"
+                                                                onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     onEdit && onEdit(item);
                                                                 }}
                                                             >
                                                                 <AppIcon name={appName} customUrl={finalIconUrl} size={18} />
-                                                                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/60 rounded opacity-0 group-hover/icon:opacity-100 transition-opacity">
+                                                                <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/60 rounded opacity-0 group-hover/icon:opacity-100 transition-opacity">
                                                                     <Edit2 size={10} className="text-black dark:text-white" />
                                                                 </div>
                                                             </div>
-                                                            <span className="font-medium truncate">{appName}</span>
+                                                            <div className="flex flex-col md:hidden">
+                                                                <span className="font-medium text-sm">{item.action}</span>
+                                                                <span className="text-xs text-[var(--text-muted)]">{appName}</span>
+                                                            </div>
+                                                            <span className="font-medium truncate hidden md:block">{appName}</span>
                                                         </>
                                                     );
                                                 })()}
                                             </div>
-                                            <div className="col-span-4 text-[var(--text-secondary)]">
+
+                                            {/* Key Combo - Prominent on Mobile */}
+                                            <div className="md:col-span-3 md:order-1 mt-2 md:mt-0">
+                                                <KeyVisual keys={item.keys} />
+                                            </div>
+
+                                            {/* Desktop Action / Mobile Note */}
+                                            <div className="md:col-span-4 md:order-3 text-[var(--text-secondary)] hidden md:block">
                                                 {item.action}
                                             </div>
-                                            <div className="col-span-2 text-xs text-[var(--text-muted)] line-clamp-2 pr-6">
-                                                {item.notes || "—"}
+
+                                            {/* Notes: Bottom on mobile */}
+                                            <div className="md:col-span-2 md:order-4 text-xs text-[var(--text-muted)] line-clamp-2 md:pr-6 mt-1 md:mt-0">
+                                                {item.notes || (
+                                                    <span className="md:hidden inline-block italic opacity-50">No notes</span>
+                                                )}
                                             </div>
                                         </GlassCard>
                                     </motion.div>
