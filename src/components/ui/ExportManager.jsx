@@ -156,8 +156,8 @@ export function ExportManager({ shortcuts }) {
 
   return (
 
-    <div className="h-full w-full flex flex-col items-center p-4 sm:p-6 lg:p-12 overflow-hidden">
-      <div className="w-full max-w-6xl h-full flex flex-col">
+    <div className="h-full w-full flex flex-col items-center p-4 sm:p-6 lg:p-12 !pb-32 overflow-y-auto">
+      <div className="w-full max-w-6xl flex-1 flex flex-col">
         
         {/* Header */}
         <div className="text-center mb-4 flex-none">
@@ -165,7 +165,7 @@ export function ExportManager({ shortcuts }) {
         </div>
 
         {/* Dynamic Flex Selection */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-6 min-h-0 w-full mb-4">
+        <div className="flex-1 flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-6 w-full mb-4">
           {typeOptions.map(option => {
             const isSelected = selectedTypes[option.id];
             const Icon = option.icon;

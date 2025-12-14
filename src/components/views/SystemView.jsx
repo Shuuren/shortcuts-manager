@@ -255,7 +255,7 @@ export function SystemView({ shortcuts, apps = [], onEdit, onEditGroup, highligh
                     return (
                         <div key={groupName}>
                             <div 
-                                className="sticky top-0 z-10 bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-md flex items-center gap-2 mb-4 group/header cursor-pointer hover:bg-[var(--glass-bg-hover)] rounded-lg py-2 px-3 -mx-3 transition-colors border-b border-[var(--glass-border)]"
+                                className="sticky top-0 z-10 bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-md flex items-center gap-2 mb-4 group/header cursor-pointer hover:bg-[var(--glass-bg-hover)] rounded-lg py-2 px-3 transition-colors border-b border-[var(--glass-border)]"
                                 onClick={() => onEditGroup && onEditGroup(groupData)}
                             >
                                 <div className="relative">
