@@ -167,7 +167,7 @@ const KeyVisual = memo(function KeyVisual({ keys }) {
                         >
                             <HyperIcon size={10} />
                             {/* Custom tooltip */}
-                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-neutral-800 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover/hyper:opacity-100 transition-opacity pointer-events-none border border-white/20 shadow-xl z-50">
+                            <span className="absolute bottom-full left-0 mb-2 px-3 py-1.5 bg-neutral-800 text-white text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover/hyper:opacity-100 transition-opacity pointer-events-none border border-white/20 shadow-xl z-50">
                                 Hyper = ⌃⇧⌥⌘
                             </span>
                         </span>
