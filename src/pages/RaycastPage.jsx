@@ -26,7 +26,7 @@ export const RaycastPage = memo(function RaycastPage({
     return shortcuts.filter(item => {
       const textFields = [
         item.commandName,
-        item.extension,
+        item.category,
         item.aliasText,
         item.keys,
         item.notes

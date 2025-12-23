@@ -196,7 +196,7 @@ const pruneTree = (node, query) => {
     return null;
 };
 
-export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = '', onEdit, onEditGroup, onCreateGroup, highlightedShortcutId }) {
+export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = '', onEdit, onEditGroup, onCreateGroup, onCreateShortcut, highlightedShortcutId }) {
     const [path, setPath] = useState(['root']);
     const prevHighlightedRef = useRef(null);
     
@@ -335,6 +335,15 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
     if (currentNode.items) {
         currentNode.items.forEach(item => endNodes.push(item));
     }
+
+    // Sort shortcuts by the last key in their sequence (alphabetically)
+    endNodes.sort((a, b) => {
+        const seqA = a.sequence || [];
+        const seqB = b.sequence || [];
+        const lastKeyA = seqA[seqA.length - 1] || '';
+        const lastKeyB = seqB[seqB.length - 1] || '';
+        return lastKeyA.localeCompare(lastKeyB);
+    });
 
     // Helper to render sequence
     const renderSequence = (sequence) => {
@@ -542,9 +551,24 @@ export function LeaderView({ shortcuts, groups = [], apps = [], searchQuery = ''
 
                 {/* Shortcuts Column */}
                 <div className="flex flex-col gap-4">
-                    <h3 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">
-                        Shortcuts
-                    </h3>
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider">
+                            Shortcuts
+                        </h3>
+                        {onCreateShortcut && (
+                            <button 
+                                onClick={() => {
+                                    // Pass the current path (excluding 'root') as the prefix sequence
+                                    const prefixKeys = effectivePath.slice(1);
+                                    onCreateShortcut(prefixKeys);
+                                }}
+                                className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                            >
+                                <Plus size={14} />
+                                Add Shortcut
+                            </button>
+                        )}
+                    </div>
                     
                     {hasShortcuts ? (
                         <AnimatePresence mode='popLayout'>

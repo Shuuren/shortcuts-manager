@@ -22,7 +22,7 @@ import { useToast } from './components/ui/Toast';
 import { Plus } from 'lucide-react';
 
 // Page components (memoized containers)
-import { LeaderPage, RaycastPage, SystemPage, AppsPage, HistoryPage, ExportPage } from './pages';
+import { LeaderPage, RaycastPage, SystemPage, AppsPage, HistoryPage, ExportPage, ShortcutCheckerPage } from './pages';
 
 // Performance utilities
 import { markAppStart, trackRouteChange, measureFirstViewRender, DEBUG_PERF } from './utils/perf';
@@ -41,6 +41,7 @@ const ROUTE_MAP = {
   '/raycast': 'raycast',
   '/system': 'system',
   '/apps': 'apps',
+  '/checker': 'checker',
   '/export': 'export',
   '/history': 'history',
 };
@@ -92,6 +93,7 @@ function App() {
   // ---- Modal State ----
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingShortcut, setEditingShortcut] = useState(null);
+  const [prefixSequence, setPrefixSequence] = useState([]); // For leader shortcuts: pre-fill from current group context
   const [isGroupFormOpen, setIsGroupFormOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
   const [isAppFormOpen, setIsAppFormOpen] = useState(false);
@@ -201,6 +203,18 @@ function App() {
       return;
     }
     setEditingShortcut(null);
+    setPrefixSequence([]); // No context when using FAB
+    setIsFormOpen(true);
+  }, [canEdit, toast]);
+
+  // Create shortcut with context (called from LeaderView with current path)
+  const handleCreateWithContext = useCallback((prefixKeys = []) => {
+    if (!canEdit) {
+      toast.error('Login required to create shortcuts');
+      return;
+    }
+    setEditingShortcut(null);
+    setPrefixSequence(prefixKeys); // Pre-fill with the group path context
     setIsFormOpen(true);
   }, [canEdit, toast]);
 
@@ -209,6 +223,7 @@ function App() {
       toast.error('Login required to edit shortcuts');
       return;
     }
+    setPrefixSequence([]); // No prefix when editing
     setEditingShortcut(shortcut);
     setIsFormOpen(true);
   }, [canEdit, toast]);
@@ -244,6 +259,23 @@ function App() {
     
     try {
       await store.deleteShortcut(id, type);
+      setIsFormOpen(false);
+      setEditingShortcut(null);
+    } catch {
+      // Error is already handled by store
+    }
+  }, [canEdit, getShortcutType, store, toast]);
+
+  const handleArchive = useCallback(async (id, archived = true) => {
+    if (!canEdit) {
+      toast.error('Login required');
+      return;
+    }
+    
+    const type = getShortcutType();
+    
+    try {
+      await store.archiveShortcut(id, type, archived);
       setIsFormOpen(false);
       setEditingShortcut(null);
     } catch {
@@ -384,6 +416,19 @@ function App() {
     }, 100);
   }, [canEdit, handleTabChange, toast]);
 
+  // Navigate to shortcut from Shortcut Checker
+  const handleNavigateToShortcut = useCallback((shortcut, type) => {
+    const tabMap = {
+      'raycast': 'raycast',
+      'system': 'system'
+    };
+    const targetTab = tabMap[type] || 'raycast';
+    handleTabChange(targetTab);
+    
+    setHighlightedShortcutId(shortcut.id);
+    setTimeout(() => setHighlightedShortcutId(null), 3000);
+  }, [handleTabChange]);
+
   // ---- Undo/Redo ----
   const handleUndo = useCallback(async () => {
     if (!history.canUndo || !canEdit) return;
@@ -398,7 +443,8 @@ function App() {
       
       if (entry.action === 'create') {
         success = await store.applyChange(entry.entityType, 'delete', entry.entityId, null);
-      } else if (entry.action === 'update') {
+      } else if (entry.action === 'update' || entry.action === 'archive' || entry.action === 'unarchive') {
+        // Archive/unarchive are just updates - revert to previous state
         success = await store.applyChange(entry.entityType, 'update', entry.entityId, entry.before);
       } else if (entry.action === 'delete') {
         success = await store.applyChange(entry.entityType, 'create', null, entry.before);
@@ -429,7 +475,8 @@ function App() {
       
       if (entry.action === 'create') {
         success = await store.applyChange(entry.entityType, 'create', null, entry.after);
-      } else if (entry.action === 'update') {
+      } else if (entry.action === 'update' || entry.action === 'archive' || entry.action === 'unarchive') {
+        // Archive/unarchive are just updates - apply the after state
         success = await store.applyChange(entry.entityType, 'update', entry.entityId, entry.after);
       } else if (entry.action === 'delete') {
         success = await store.applyChange(entry.entityType, 'delete', entry.entityId, null);
@@ -462,7 +509,8 @@ function App() {
       
       if (entry.action === 'create') {
         success = await store.applyChange(entry.entityType, 'delete', entry.entityId, null);
-      } else if (entry.action === 'update') {
+      } else if (entry.action === 'update' || entry.action === 'archive' || entry.action === 'unarchive') {
+        // Archive/unarchive are just updates - revert to previous state
         success = await store.applyChange(entry.entityType, 'update', entry.entityId, entry.before);
       } else if (entry.action === 'delete') {
         success = await store.applyChange(entry.entityType, 'create', null, entry.before);
@@ -494,7 +542,8 @@ function App() {
       
       if (entry.action === 'create') {
         success = await store.applyChange(entry.entityType, 'create', null, entry.after);
-      } else if (entry.action === 'update') {
+      } else if (entry.action === 'update' || entry.action === 'archive' || entry.action === 'unarchive') {
+        // Archive/unarchive are just updates - apply the after state
         success = await store.applyChange(entry.entityType, 'update', entry.entityId, entry.after);
       } else if (entry.action === 'delete') {
         success = await store.applyChange(entry.entityType, 'delete', entry.entityId, null);
@@ -549,6 +598,7 @@ function App() {
                 onEdit={handleEdit}
                 onEditGroup={handleEditGroup}
                 onCreateGroup={handleCreateGroup}
+                onCreateShortcut={handleCreateWithContext}
                 highlightedShortcutId={highlightedShortcutId}
               />
             </div>
@@ -592,6 +642,15 @@ function App() {
               <ExportPage shortcuts={exportData} />
             </div>
 
+            {/* Shortcut Checker View */}
+            <div className={`h-full ${activeTab === 'checker' ? 'block' : 'hidden'}`}>
+              <ShortcutCheckerPage 
+                raycastShortcuts={store.raycastShortcuts}
+                systemShortcuts={store.systemShortcuts}
+                onNavigate={handleNavigateToShortcut}
+              />
+            </div>
+
             {/* History View */}
             <div className={`h-full ${activeTab === 'history' ? 'block' : 'hidden'}`}>
               <HistoryPage 
@@ -603,7 +662,7 @@ function App() {
         )}
 
         {/* Floating Action Button for shortcuts */}
-        {canEdit && activeTab !== 'apps' && activeTab !== 'history' && activeTab !== 'export' && (
+        {canEdit && activeTab !== 'apps' && activeTab !== 'history' && activeTab !== 'export' && activeTab !== 'checker' && (
           <button
             onClick={handleCreate}
             className="absolute bottom-20 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-50"
@@ -631,7 +690,8 @@ function App() {
             canRedo={history.canRedo}
             historyLength={history.history.length}
             activeTab={activeTab}
-            hasRecentActivity={history.hasSessionActivity}
+            activityTab={history.activityTab}
+            onDismiss={history.dismissActivity}
           />
         )}
 
@@ -641,8 +701,10 @@ function App() {
           onClose={() => setIsFormOpen(false)} 
           shortcut={editingShortcut}
           shortcutType={getShortcutType()} 
+          prefixSequence={prefixSequence}
           onSave={handleSave}
           onDelete={editingShortcut ? () => handleDelete(editingShortcut.id) : undefined}
+          onArchive={editingShortcut ? (archived) => handleArchive(editingShortcut.id, archived) : undefined}
           apps={store.apps} 
         />
         
@@ -652,7 +714,7 @@ function App() {
           group={editingGroup}
           onSave={handleSaveGroup}
           onDelete={editingGroup ? () => handleDeleteGroup(editingGroup.id) : undefined}
-          existingGroups={store.leaderGroups} 
+          parentGroups={store.leaderGroups} 
         />
 
         <AppForm 

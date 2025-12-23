@@ -1,6 +1,6 @@
 import { useState, useRef, memo } from 'react';
 import { GlassPanel } from '../ui/GlassPanel';
-import { LayoutGrid, Command, Keyboard, Menu, X, Box, ChevronLeft, ChevronRight, Sparkles, Sun, Moon, History, FileDown } from 'lucide-react';
+import { LayoutGrid, Command, Keyboard, Menu, X, Box, ChevronLeft, ChevronRight, Sparkles, Sun, Moon, History, FileDown, SearchCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { ProfileDropdown } from '../ui/ProfileDropdown';
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { id: 'system', label: 'System', icon: Keyboard, headerLabel: 'System View' },
   { id: 'divider' }, // divider
   { id: 'apps', label: 'Apps Library', icon: Box, headerLabel: 'Apps Library' },
+  { id: 'checker', label: 'Shortcut Checker', icon: SearchCheck, headerLabel: 'Shortcut Checker' },
   { id: 'divider2' }, // divider
   { id: 'export', label: 'Export', icon: FileDown, headerLabel: 'Export Manager' },
   { id: 'history', label: 'History', icon: History, headerLabel: 'Change History', editorsOnly: true },

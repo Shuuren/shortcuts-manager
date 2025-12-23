@@ -1,25 +1,23 @@
 import { 
-    Monitor, AppWindow, Keyboard, Settings, Camera, Folder, Zap, 
-    Volume2, Layout, Terminal, Box, Globe, MessageSquare, 
-    Code, PenTool, Clipboard, Search, Bookmark, Command,
-    Cpu, Grid, Layers, MousePointer, StickyNote, CheckSquare
+    Monitor, AppWindow, Settings, Zap, 
+    Volume2, Layout, Box, Globe, 
+    Code, Clipboard, Command, Cpu
 } from 'lucide-react';
 
-// Simplified Core Categories based on user feedback
+// Core Categories - commonly used groupings
 export const CATEGORY_ICONS = {
     'AI': Cpu,
     'Applications': AppWindow,
-    'Bookmarks': Bookmark,
     'Browsers': Globe,
     'Clipboard': Clipboard,
-    'Design': PenTool,
+    'Code': Code,
     'Development': Code,
     'Focus': Zap,
+    'Launcher': Command,
     'Media': Volume2,
     'System': Monitor,
-    'Window Management': Layout,
     'Utilities': Settings,
-    'Launcher': Command,
+    'Window Management': Layout,
     'Other': Box,
     'Uncategorized': Box
 };

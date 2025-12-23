@@ -315,9 +315,6 @@ export function ImageEditor({ isOpen, onClose, imageSrc, onSave }) {
                         Reset
                     </Button>
                     <div className="flex-1" />
-                    <Button variant="secondary" onClick={onClose}>
-                        Cancel
-                    </Button>
                     <Button variant="primary" onClick={handleSave}>
                         Apply
                     </Button>

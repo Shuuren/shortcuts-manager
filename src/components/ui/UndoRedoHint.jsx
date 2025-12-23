@@ -13,6 +13,8 @@ function HintContent({ canUndo, canRedo, onDismiss }) {
   useEffect(() => {
     timerRef.current = setTimeout(() => {
       setIsHidden(true);
+      // Notify parent to dismiss activity tracking when timer expires
+      if (onDismiss) onDismiss();
     }, 5000);
 
     return () => {
@@ -20,7 +22,7 @@ function HintContent({ canUndo, canRedo, onDismiss }) {
         clearTimeout(timerRef.current);
       }
     };
-  }, []);
+  }, [onDismiss]);
 
   const handleDismiss = useCallback(() => {
     if (timerRef.current) {
@@ -88,24 +90,27 @@ function HintContent({ canUndo, canRedo, onDismiss }) {
   );
 }
 
-export function UndoRedoHint({ canUndo, canRedo, historyLength = 0, activeTab = '', hasRecentActivity = false }) {
+export function UndoRedoHint({ canUndo, canRedo, historyLength = 0, activeTab = '', activityTab = null, onDismiss }) {
   // Don't show if nothing to undo or redo
   if (!canUndo && !canRedo) return null;
   
-  // Don't show on page load - only show when there's been recent CRUD activity in this session
-  if (!hasRecentActivity) return null;
+  // Only show in the tab where the activity occurred (if tracking is active)
+  // If activityTab is null, no recent activity in this session
+  if (!activityTab || activityTab !== activeTab) return null;
 
   // Use a key that changes when history length changes (new action added)
-  // or when undo/redo state changes or tab changes - this ensures the hint re-appears
-  const stateKey = `hint-${canUndo}-${canRedo}-${historyLength}-${activeTab}`;
+  // Don't include activeTab - we don't want to remount when switching tabs
+  const stateKey = `hint-${canUndo}-${canRedo}-${historyLength}`;
 
   return (
     <AnimatePresence>
       <HintContent 
         key={stateKey}
         canUndo={canUndo} 
-        canRedo={canRedo} 
+        canRedo={canRedo}
+        onDismiss={onDismiss}
       />
     </AnimatePresence>
   );
 }
+

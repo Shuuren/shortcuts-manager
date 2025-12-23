@@ -17,6 +17,7 @@ export const LeaderPage = memo(function LeaderPage({
   onEdit,
   onEditGroup,
   onCreateGroup,
+  onCreateShortcut,
   highlightedShortcutId
 }) {
   // Memoized filtering - only recalculate when dependencies change
@@ -59,6 +60,7 @@ export const LeaderPage = memo(function LeaderPage({
       onEdit={onEdit}
       onEditGroup={onEditGroup}
       onCreateGroup={onCreateGroup}
+      onCreateShortcut={onCreateShortcut}
       highlightedShortcutId={highlightedShortcutId}
     />
   );

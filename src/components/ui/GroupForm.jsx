@@ -26,9 +26,9 @@ export function GroupForm({
     const isEditing = !!group;
     const toast = useToast();
     
-    // Detect group type: leader (stored separately), raycastExtension, or systemCategory (derived from data)
+    // Detect group type: leader (stored separately), raycastCategory, or systemCategory (derived from data)
     const groupType = group?.type || 'leader';
-    const isVirtualGroup = groupType === 'raycastExtension' || groupType === 'systemCategory';
+    const isVirtualGroup = groupType === 'raycastCategory' || groupType === 'systemCategory';
     
     // Use a key derived from group and isOpen to track when to reset
     const formKey = useMemo(() => `${group?.id || 'new'}-${isOpen}`, [group?.id, isOpen]);
@@ -124,8 +124,8 @@ export function GroupForm({
     const getTitle = () => {
         if (!isEditing) return 'Add New Group';
         switch (groupType) {
-            case 'raycastExtension':
-                return 'Edit Extension Group';
+            case 'raycastCategory':
+                return 'Edit Category Group';
             case 'systemCategory':
                 return 'Edit Category';
             default:
@@ -142,12 +142,12 @@ export function GroupForm({
                 <Info size={16} className="mt-0.5 flex-shrink-0" />
                 <div>
                     <strong className="block mb-1">
-                        {groupType === 'raycastExtension' ? 'Extension Group' : 'Category Group'}
+                    {groupType === 'raycastCategory' ? 'Category Group' : 'Category Group'}
                     </strong>
                     <p className="text-blue-600/70 dark:text-blue-300/70">
                         {groupType === 'systemCategory' 
                             ? 'To rename this group, edit any shortcut within it and change its "Category / Group" field. All shortcuts with this category will appear in the renamed group.'
-                            : `This group is derived from the shortcuts' extension field. To rename this group, you'll need to update the extension field on all shortcuts within it.`
+                            : `To rename this group, edit any command within it and change its "Category" field. All commands with this category will appear in the renamed group.`
                         }
                     </p>
                 </div>
@@ -171,9 +171,6 @@ export function GroupForm({
                         </Button>
                     )}
                     <div className="hidden sm:block flex-1" />
-                    <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto">
-                        {isVirtualGroup ? 'Close' : 'Cancel'}
-                    </Button>
                     {!isVirtualGroup && (
                         <Button variant="primary" onClick={handleSubmit} className="w-full sm:w-auto">
                             {isEditing ? 'Save Changes' : 'Add Group'}
@@ -189,7 +186,7 @@ export function GroupForm({
                 {isVirtualGroup ? (
                     <>
                         <FormInput 
-                            label={groupType === 'raycastExtension' ? 'Extension Name' : 'Category Name'}
+                            label="Category Name"
                             value={formData.name || ''}
                             onChange={() => {}}
                             disabled

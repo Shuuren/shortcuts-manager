@@ -1,7 +1,7 @@
 import { GlassCard } from '../ui/GlassPanel';
-import { motion } from 'framer-motion';
-import { useMemo, memo } from 'react';
-import { Command, Box, Type, ArrowRight, Edit2, Settings } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useMemo, useState, memo } from 'react';
+import { Command, Box, Type, ArrowRight, Edit2, Settings, Archive, ChevronDown, ChevronRight } from 'lucide-react';
 import { getAppIcon } from '../../config/icons';
 
 
@@ -200,6 +200,10 @@ const KeyVisual = memo(function KeyVisual({ keys }) {
 });
 
 export function RaycastView({ shortcuts, apps = [], onEdit, onEditGroup }) {
+    // Collapse state for archive sections
+    const [commandsArchiveOpen, setCommandsArchiveOpen] = useState(false);
+    const [aliasesArchiveOpen, setAliasesArchiveOpen] = useState(false);
+    
     // Create app lookup map
     const appMap = useMemo(() => {
         return apps.reduce((acc, app) => {
@@ -208,20 +212,35 @@ export function RaycastView({ shortcuts, apps = [], onEdit, onEditGroup }) {
         }, {});
     }, [apps]);
 
-    // Separate commands (those with keys or no aliasText) from aliases
-    const commands = shortcuts.filter(s => s.keys || !s.aliasText);
-    const aliases = shortcuts.filter(s => s.aliasText);
+    // Separate active vs archived first
+    const activeShortcuts = shortcuts.filter(s => !s.archived);
+    const archivedShortcuts = shortcuts.filter(s => s.archived);
 
-    // Group commands by extension
+    // Separate commands (those with keys or no aliasText) from aliases
+    const commands = activeShortcuts.filter(s => s.keys || !s.aliasText);
+    const aliases = activeShortcuts.filter(s => s.aliasText).sort((a, b) => 
+        (a.commandName || '').localeCompare(b.commandName || '')
+    );
+    
+    // Archived items (also sorted alphabetically)
+    const archivedCommands = archivedShortcuts.filter(s => s.keys || !s.aliasText);
+    const archivedAliases = archivedShortcuts.filter(s => s.aliasText).sort((a, b) => 
+        (a.commandName || '').localeCompare(b.commandName || '')
+    );
+
+    // Group commands by category
     const groupedCommands = commands.reduce((acc, curr) => {
-        const ext = curr.extension || 'Uncategorized';
-        if (!acc[ext]) acc[ext] = [];
-        acc[ext].push(curr);
+        const cat = curr.category || 'Uncategorized';
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(curr);
         return acc;
     }, {});
 
-    // Sort extensions alphabetically
-    const sortedExtensions = Object.keys(groupedCommands).sort();
+    // Sort categories alphabetically, then sort commands within each category by commandName
+    const sortedCategories = Object.keys(groupedCommands).sort();
+    sortedCategories.forEach(cat => {
+        groupedCommands[cat].sort((a, b) => (a.commandName || '').localeCompare(b.commandName || ''));
+    });
 
     return (
         <div className="flex flex-col md:flex-row h-full gap-6 md:overflow-hidden overflow-y-auto custom-scrollbar">
@@ -234,39 +253,35 @@ export function RaycastView({ shortcuts, apps = [], onEdit, onEditGroup }) {
                      <span className="text-xs bg-[var(--surface-highlight)] border border-[var(--surface-border-strong)] px-2 py-0.5 rounded-full text-[var(--text-secondary)]">{commands.length}</span>
                 </div>
 
-                {sortedExtensions.map(extension => {
+                {sortedCategories.map(category => {
                     // Create a virtual group object for editing
                     const groupData = {
-                        id: `raycast_ext_${extension}`,
-                        type: 'raycastExtension',
-                        name: extension,
-                        key: extension,
-                        iconUrl: getAppIcon(extension)
+                        id: `raycast_cat_${category}`,
+                        type: 'raycastCategory',
+                        name: category,
+                        key: category,
+                        iconUrl: getAppIcon(category)
                     };
                     
-                    // Try to find app icon for extension if possible
-                    // This is tricky because extension name might not match app name, but normally does.
-                    // We can rely on the items inside usually. But for the header, we stick to name lookup for now.
-                    
                     return (
-                    <div key={extension} className="mb-6">
+                    <div key={category} className="mb-6">
                         <div 
                             className="flex items-center gap-2 mb-3 pl-1 group/header cursor-pointer hover:bg-[var(--glass-bg-hover)] rounded-lg py-1 px-2 -mx-2 transition-colors"
                             onClick={() => onEditGroup && onEditGroup(groupData)}
                         >
                             <div className="relative">
-                                <AppIcon name={extension} size={20} />
+                                <AppIcon name={category} size={20} />
                                 <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/60 backdrop-blur-[1px] rounded opacity-0 group-hover/header:opacity-100 transition-opacity">
                                     <Edit2 size={10} className="text-black dark:text-white" />
                                 </div>
                             </div>
-                            <h4 className="text-sm uppercase tracking-wider text-[var(--text-muted)] font-bold group-hover/header:text-[var(--text-secondary)] transition-colors">{extension}</h4>
+                            <h4 className="text-sm uppercase tracking-wider text-[var(--text-muted)] font-bold group-hover/header:text-[var(--text-secondary)] transition-colors">{category}</h4>
                             <div className="ml-auto opacity-0 group-hover/header:opacity-100 transition-opacity p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer">
                                 <Settings size={14} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 gap-3">
-                            {groupedCommands[extension].map(item => {
+                            {groupedCommands[category].map(item => {
                                 const hasBoth = item.keys && item.aliasText;
                                 const appName = item.commandName?.replace(/^(Open|Launch|Toggle)\s+/i, '').trim();
                                 
@@ -330,6 +345,82 @@ export function RaycastView({ shortcuts, apps = [], onEdit, onEditGroup }) {
                     </div>
                     );
                 })}
+                
+                {/* Archived Commands Section */}
+                {archivedCommands.length > 0 && (
+                    <div className="mt-6 border-t border-[var(--glass-border)] pt-4">
+                        <button
+                            onClick={() => setCommandsArchiveOpen(!commandsArchiveOpen)}
+                            className="flex items-center gap-2 w-full text-left py-2 px-3 rounded-lg hover:bg-[var(--glass-bg-hover)] transition-colors"
+                        >
+                            {commandsArchiveOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            <Archive size={16} className="text-amber-500" />
+                            <span className="font-medium text-[var(--text-secondary)]">Archive</span>
+                            <span className="text-xs bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-full text-amber-600 dark:text-amber-400">
+                                {archivedCommands.length}
+                            </span>
+                        </button>
+                        
+                        <AnimatePresence>
+                            {commandsArchiveOpen && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="grid grid-cols-1 gap-3 mt-3">
+                                        {archivedCommands.map(item => {
+                                            const appName = item.commandName?.replace(/^(Open|Launch|Toggle)\s+/i, '').trim();
+                                            const linkedApp = appMap[item.appId];
+                                            const finalIconUrl = linkedApp?.iconUrl || item.iconUrl;
+                                            
+                                            return (
+                                                <motion.div 
+                                                    key={item.id}
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                >
+                                                    <GlassCard 
+                                                        className="flex flex-col gap-2 group cursor-pointer border-l-4 border-l-amber-500/30 transition-all relative opacity-50 hover:opacity-80"
+                                                        onClick={() => onEdit && onEdit(item)}
+                                                    >
+                                                        {/* Archived badge */}
+                                                        <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 rounded-full text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                                            <Archive size={10} />
+                                                            Archived
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded bg-[var(--input-bg)] flex items-center justify-center flex-shrink-0 overflow-hidden grayscale">
+                                                                <AppIcon name={appName} customUrl={finalIconUrl} size={24} />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0 pr-16">
+                                                                <div className="font-medium truncate text-[var(--text-muted)]">{item.commandName}</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {(item.keys || item.aliasText) && (
+                                                            <div className="flex flex-col gap-2 mt-1 ml-11 opacity-60">
+                                                                {item.keys && <KeyVisual keys={item.keys} />}
+                                                                {item.aliasText && (
+                                                                    <span className="px-2 py-1 bg-purple-500/10 rounded text-xs font-mono text-purple-500/70 border border-purple-500/20 w-fit">
+                                                                        {item.aliasText}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </GlassCard>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                )}
             </div>
 
             {/* Divider */}
@@ -385,13 +476,82 @@ export function RaycastView({ shortcuts, apps = [], onEdit, onEditGroup }) {
                                             <span className="px-2 py-1 bg-purple-500/20 rounded text-sm font-mono font-bold text-purple-700 dark:text-purple-300 border border-purple-500/40 flex-shrink-0">
                                                 {item.aliasText}
                                             </span>
-                                        </div>
                                     </div>
-                                </GlassCard>
-                            </motion.div>
-                        );
-                    })}
+                                </div>
+                            </GlassCard>
+                        </motion.div>
+                    );
+                })}
                 </div>
+                
+                {/* Archived Aliases Section */}
+                {archivedAliases.length > 0 && (
+                    <div className="mt-6 border-t border-[var(--glass-border)] pt-4">
+                        <button
+                            onClick={() => setAliasesArchiveOpen(!aliasesArchiveOpen)}
+                            className="flex items-center gap-2 w-full text-left py-2 px-3 rounded-lg hover:bg-[var(--glass-bg-hover)] transition-colors"
+                        >
+                            {aliasesArchiveOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            <Archive size={16} className="text-amber-500" />
+                            <span className="font-medium text-[var(--text-secondary)]">Archive</span>
+                            <span className="text-xs bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-full text-amber-600 dark:text-amber-400">
+                                {archivedAliases.length}
+                            </span>
+                        </button>
+                        
+                        <AnimatePresence>
+                            {aliasesArchiveOpen && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="grid grid-cols-1 gap-3 mt-3">
+                                        {archivedAliases.map(item => {
+                                            const appName = item.commandName?.replace(/^(Open|Launch|Toggle)\s+/i, '').trim();
+                                            const linkedApp = appMap[item.appId];
+                                            const finalIconUrl = linkedApp?.iconUrl || item.iconUrl;
+                                            
+                                            return (
+                                                <motion.div 
+                                                    key={item.id}
+                                                    initial={{ opacity: 0, x: 10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                >
+                                                    <GlassCard 
+                                                        className="group cursor-pointer border-l-4 border-l-amber-500/30 transition-all relative opacity-50 hover:opacity-80"
+                                                        onClick={() => onEdit && onEdit(item)}
+                                                    >
+                                                        {/* Archived badge */}
+                                                        <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 rounded-full text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                                            <Archive size={10} />
+                                                            Archived
+                                                        </div>
+                                                        
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="flex items-center gap-3 flex-1 min-w-0 pr-20">
+                                                                <div className="w-7 h-7 rounded bg-[var(--input-bg)] flex items-center justify-center flex-shrink-0 overflow-hidden grayscale">
+                                                                    <AppIcon name={appName} customUrl={finalIconUrl} size={20} />
+                                                                </div>
+                                                                <span className="text-[var(--text-muted)] font-medium truncate">{item.commandName}</span>
+                                                                <ArrowRight size={14} className="text-[var(--text-muted)] opacity-40 flex-shrink-0" />
+                                                                <span className="px-2 py-1 bg-purple-500/10 rounded text-sm font-mono font-bold text-purple-500/50 border border-purple-500/20 flex-shrink-0">
+                                                                    {item.aliasText}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </GlassCard>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                )}
             </div>
         </div>
     );

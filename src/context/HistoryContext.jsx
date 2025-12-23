@@ -54,9 +54,9 @@ export function HistoryProvider({ children }) {
   
   const [isUndoRedoInProgress, setIsUndoRedoInProgress] = useState(false);
   
-  // Track if any CRUD activity has happened in this session
-  // This prevents the undo/redo tooltip from showing on page refresh when history exists from previous sessions
-  const [hasSessionActivity, setHasSessionActivity] = useState(false);
+  // Track which tab had recent CRUD activity in this session
+  // This prevents the undo/redo tooltip from showing on page refresh and ensures it only shows in the correct tab
+  const [activityTab, setActivityTab] = useState(null);
   
   // Track the current user to clear history when user changes
   // Initialize from localStorage so we remember who the history belongs to
@@ -83,11 +83,13 @@ export function HistoryProvider({ children }) {
   }, [history, currentIndex]);
 
   // Add a new change to history
-  const addChange = useCallback((change) => {
+  const addChange = useCallback((change, activeTab = null) => {
     if (isUndoRedoInProgress) return;
     
-    // Mark that we have session activity (for showing undo/redo tooltip)
-    setHasSessionActivity(true);
+    // Track which tab had activity (for showing undo/redo tooltip only in that tab)
+    if (activeTab) {
+      setActivityTab(activeTab);
+    }
 
     setHistory(prev => {
       // Remove any "future" entries if we're not at the end
@@ -170,6 +172,12 @@ export function HistoryProvider({ children }) {
   const clearHistory = useCallback(() => {
     setHistory([]);
     setCurrentIndex(-1);
+    setActivityTab(null);
+  }, []);
+
+  // Dismiss activity (hide the undo/redo hint until next action)
+  const dismissActivity = useCallback(() => {
+    setActivityTab(null);
   }, []);
 
   // Set flag for undo/redo operations
@@ -210,7 +218,8 @@ export function HistoryProvider({ children }) {
       clearHistory,
       isUndoRedoInProgress,
       setUndoRedoFlag,
-      hasSessionActivity,
+      activityTab,
+      dismissActivity,
       setCurrentUser,
       deleteEntry: (entryId) => {
         setHistory(prev => {

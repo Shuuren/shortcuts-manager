@@ -4,7 +4,8 @@ import { Modal, FormInput, FormSelect, Button, ConfirmModal } from './Modal';
 import { ImageDropZone } from './ImageDropZone';
 import { AppSelector } from './AppSelector';
 import { CategorySelector } from './CategorySelector';
-import { Trash2, Link, Unlink, Info, X } from 'lucide-react';
+import { KeySequenceInput } from './KeySequenceInput';
+import { Trash2, Link, Unlink, Info, X, Archive, ArchiveRestore } from 'lucide-react';
 
 // Special Actions Help Tooltip Component
 const SpecialActionsHelp = () => {
@@ -103,15 +104,19 @@ const SpecialActionsHelp = () => {
 
 
 // Helper to compute initial state for shortcuts
-const computeInitialShortcutState = (shortcut, shortcutType) => {
+const computeInitialShortcutState = (shortcut, shortcutType, prefixSequence = []) => {
     if (shortcut) return { ...shortcut };
     
     switch (shortcutType) {
         case 'leaderShortcuts':
+            // Pre-fill sequence with prefix from current group context
+            const initialSequence = prefixSequence.length > 0 
+                ? ['Leader', ...prefixSequence] 
+                : ['Leader'];
             return {
                 app: '',
                 action: '',
-                sequence: ['Leader'],
+                sequence: initialSequence,
                 category: 'Applications',
                 notes: '',
                 appId: null,
@@ -120,10 +125,9 @@ const computeInitialShortcutState = (shortcut, shortcutType) => {
         case 'raycastShortcuts':
             return {
                 commandName: '',
-                extension: '',
                 aliasText: '',
                 keys: '',
-                category: 'Custom',
+                category: '',
                 notes: '',
                 appId: null,
                 iconUrl: ''
@@ -148,18 +152,20 @@ export function ShortcutForm({
     onClose, 
     shortcutType, // 'leaderShortcuts' | 'raycastShortcuts' | 'systemShortcuts'
     shortcut = null, // null for create, object for edit
+    prefixSequence = [], // For leader shortcuts: pre-fill sequence from current group context
     apps = [], // Apps from the library for linking
     onSave,
-    onDelete 
+    onDelete,
+    onArchive
 }) {
     const isEditing = !!shortcut;
+    const isArchived = shortcut?.archived || false;
     const toast = useToast();
     
     // Use a key derived from shortcut, shortcutType and isOpen to track when to reset
     const formKey = useMemo(() => `${shortcut?.id || 'new'}-${shortcutType}-${isOpen}`, [shortcut?.id, shortcutType, isOpen]);
     
-    const [formData, setFormData] = useState(() => computeInitialShortcutState(shortcut, shortcutType));
-    const [sequenceInput, setSequenceInput] = useState('');
+    const [formData, setFormData] = useState(() => computeInitialShortcutState(shortcut, shortcutType, prefixSequence));
     const [useCustomIcon, setUseCustomIcon] = useState(false);
     const [errors, setErrors] = useState({});
     const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -170,14 +176,9 @@ export function ShortcutForm({
     
     // Reset form when modal opens with new data - using key comparison pattern
     if (formKey !== lastFormKey) {
-        const initial = computeInitialShortcutState(shortcut, shortcutType);
+        const initial = computeInitialShortcutState(shortcut, shortcutType, prefixSequence);
         setFormData(initial);
         setErrors({});
-        if (shortcutType === 'leaderShortcuts' && initial.sequence) {
-            setSequenceInput(initial.sequence.slice(1).join(' → '));
-        } else {
-            setSequenceInput('');
-        }
         // If there's both an appId and a custom iconUrl, user has a custom icon
         const hasLinkedApp = apps.find(a => a.id === initial.appId);
         setUseCustomIcon(initial.iconUrl && hasLinkedApp && initial.iconUrl !== hasLinkedApp.iconUrl);
@@ -212,14 +213,6 @@ export function ShortcutForm({
             setFormData(prev => ({ ...prev, appId: null }));
         }
     };
-    
-    const handleSequenceChange = (value) => {
-        setSequenceInput(value);
-        // Parse "a → n → a" or "a n a" into ["Leader", "a", "n", "a"]
-        const keys = value.split(/[\s→]+/).filter(k => k.trim());
-        setFormData(prev => ({ ...prev, sequence: ['Leader', ...keys] }));
-    };
-    
 
     
     const handleSubmit = () => {
@@ -294,12 +287,10 @@ export function ShortcutForm({
                 onChange={(v) => updateField('action', v)}
                 placeholder="e.g., Open App, Toggle Window"
             />
-            <FormInput 
-                label="Key Sequence (space or → separated)"
-                value={sequenceInput}
-                onChange={handleSequenceChange}
-                placeholder="e.g., a → n → d"
-                required
+            <KeySequenceInput 
+                value={formData.sequence || ['Leader']}
+                onChange={(sequence) => updateField('sequence', sequence)}
+                prefixKeys={prefixSequence}
                 error={errors.sequence}
             />
             <CategorySelector 
@@ -374,12 +365,14 @@ export function ShortcutForm({
                 required
                 error={errors.commandName}
             />
-            <FormInput 
-                label="Extension"
-                value={formData.extension || ''}
-                onChange={(v) => updateField('extension', v)}
-                placeholder="e.g., Applications, Snippets"
-            />
+            <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-[var(--text-secondary)]">Category</label>
+                <CategorySelector 
+                    value={formData.category || ''}
+                    onChange={(v) => updateField('category', v)}
+                    placeholder="Select or create category..."
+                />
+            </div>
             {/* Hotkey with Special Actions Help */}
             <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2">
@@ -400,13 +393,6 @@ export function ShortcutForm({
                 onChange={(v) => updateField('aliasText', v)}
                 placeholder="e.g., dis, nt"
             />
-            <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[var(--text-secondary)]">Category</label>
-                <CategorySelector 
-                    value={formData.category || 'Custom'}
-                    onChange={(v) => updateField('category', v)}
-                />
-            </div>
             
             {/* Icon Section with toggle for custom vs linked */}
             {linkedApp?.iconUrl ? (
@@ -581,10 +567,21 @@ export function ShortcutForm({
                                 Delete
                             </Button>
                         )}
+                        {isEditing && onArchive && (
+                            <Button 
+                                variant="secondary" 
+                                onClick={() => onArchive(!isArchived)}
+                                className={`flex items-center justify-center gap-2 w-full sm:w-auto ${
+                                    isArchived 
+                                        ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10' 
+                                        : 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                                }`}
+                            >
+                                {isArchived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+                                {isArchived ? 'Restore' : 'Archive'}
+                            </Button>
+                        )}
                         <div className="hidden sm:block flex-1" />
-                        <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto">
-                            Cancel
-                        </Button>
                         <Button variant="primary" onClick={handleSubmit} className="w-full sm:w-auto">
                             {isEditing ? 'Save Changes' : 'Add Shortcut'}
                         </Button>

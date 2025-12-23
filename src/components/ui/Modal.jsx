@@ -177,7 +177,13 @@ export function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confi
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
                             className="w-full max-w-sm pointer-events-auto"
                         >
-                            <div className="bg-[var(--bg-app)] border border-[var(--glass-border)] rounded-2xl shadow-2xl overflow-hidden">
+                            <div className="bg-[var(--bg-app)] border border-[var(--glass-border)] rounded-2xl shadow-2xl overflow-hidden relative">
+                                <button
+                                    onClick={onClose}
+                                    className="absolute top-4 right-4 p-2 rounded-lg hover:bg-[var(--glass-bg-hover)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                                >
+                                    <X size={18} />
+                                </button>
                                 <div className="p-6 text-center">
                                     <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
                                         <svg className="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,9 +194,6 @@ export function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confi
                                     <p className="text-sm text-[var(--text-secondary)]">{message}</p>
                                 </div>
                                 <div className="flex gap-3 p-4 border-t border-[var(--glass-border)] bg-[var(--surface-highlight)]">
-                                    <Button variant="secondary" onClick={onClose} className="flex-1">
-                                        Cancel
-                                    </Button>
                                     <Button variant={confirmVariant} onClick={onConfirm} className="flex-1">
                                         {confirmText}
                                     </Button>

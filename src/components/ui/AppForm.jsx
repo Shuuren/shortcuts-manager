@@ -149,9 +149,6 @@ export function AppForm({
                         </Button>
                     )}
                     <div className="hidden sm:block flex-1" />
-                    <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto">
-                        Cancel
-                    </Button>
                     <Button variant="primary" onClick={handleSubmit} className="w-full sm:w-auto">
                         {isEditing ? 'Save Changes' : 'Add App'}
                     </Button>

@@ -1,6 +1,6 @@
 import { useState, useEffect, memo } from 'react';
 import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform } from 'framer-motion';
-import { History, RotateCcw, ChevronDown, ChevronUp, Clock, Trash2, ArrowLeft, Package, Keyboard, Command, LayoutGrid, Undo2, Redo2, X } from 'lucide-react';
+import { History, RotateCcw, ChevronDown, ChevronUp, Clock, Trash2, ArrowLeft, Package, Keyboard, Command, LayoutGrid, Undo2, Redo2, X, Archive, ArchiveRestore } from 'lucide-react';
 import { useHistory } from '../../context/HistoryContext';
 
 const TYPE_ICONS = {
@@ -24,6 +24,8 @@ const ACTION_COLORS = {
   update: 'from-blue-500 to-cyan-500',
   delete: 'from-red-500 to-rose-500',
   revert: 'from-amber-500 to-orange-500',
+  archive: 'from-purple-500 to-violet-500',
+  unarchive: 'from-violet-500 to-indigo-500',
 };
 
 const ACTION_LABELS = {
@@ -31,6 +33,8 @@ const ACTION_LABELS = {
   update: 'Updated',
   delete: 'Deleted',
   revert: 'Reverted',
+  archive: 'Archived',
+  unarchive: 'Restored',
 };
 
 function formatTimestamp(isoString) {
@@ -114,7 +118,7 @@ const HistoryEntry = memo(function HistoryEntry({ entry, onRevert, onReapply, on
     return changes;
   };
 
-  const changedFields = (entry.action === 'update' || entry.action === 'revert') ? getChangedFields() : [];
+  const changedFields = ['update', 'revert', 'archive', 'unarchive'].includes(entry.action) ? getChangedFields() : [];
   
   const handleDragEnd = async (_, info) => {
     if (info.offset.x > 100) { // Swiped right threshold
@@ -168,6 +172,8 @@ const HistoryEntry = memo(function HistoryEntry({ entry, onRevert, onReapply, on
             ${entry.action === 'update' ? 'border-l-blue-500' : ''}
             ${entry.action === 'delete' ? 'border-l-red-500' : ''}
             ${entry.action === 'revert' ? 'border-l-amber-500' : ''}
+            ${entry.action === 'archive' ? 'border-l-purple-500' : ''}
+            ${entry.action === 'unarchive' ? 'border-l-violet-500' : ''}
           `}
         >
           {/* Card Header Content */}
@@ -185,6 +191,10 @@ const HistoryEntry = memo(function HistoryEntry({ entry, onRevert, onReapply, on
                 <span className="text-white font-bold text-lg">+</span>
               ) : entry.action === 'revert' ? (
                 <Undo2 size={18} className="text-white" />
+              ) : entry.action === 'archive' ? (
+                <Archive size={18} className="text-white" />
+              ) : entry.action === 'unarchive' ? (
+                <ArchiveRestore size={18} className="text-white" />
               ) : (
                 <RotateCcw size={18} className="text-white" />
               )}
@@ -218,7 +228,7 @@ const HistoryEntry = memo(function HistoryEntry({ entry, onRevert, onReapply, on
               </div>
               
               {/* Changes summary (Mobile optimized) */}
-              {(entry.action === 'update' || entry.action === 'revert') && changedFields.length > 0 && (
+              {['update', 'revert', 'archive', 'unarchive'].includes(entry.action) && changedFields.length > 0 && (
                 <div className="text-xs text-[var(--text-muted)] truncate mt-0.5">
                   <span className="opacity-70">Modified: </span> 
                   {changedFields.map(c => c.field).join(', ')}
@@ -292,7 +302,7 @@ const HistoryEntry = memo(function HistoryEntry({ entry, onRevert, onReapply, on
                       </div>
                     )}
                     
-                    {(entry.action === 'update' || entry.action === 'revert') && changedFields.map((change, idx) => (
+                    {['update', 'revert', 'archive', 'unarchive'].includes(entry.action) && changedFields.map((change, idx) => (
                       <ChangeDetail 
                         key={idx}
                         label={change.field}

@@ -116,28 +116,81 @@
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); /* blue-500/20 */
   }
 
-  /* Custom scrollbar */
+  /* Modern Custom Scrollbar - Sleek & Minimal */
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: var(--text-secondary) transparent;
+    scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
+    border-radius: 4px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: var(--text-muted);
-    border-radius: 3px;
+    background: rgba(128, 128, 128, 0.2);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    transition: background 0.2s ease;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: var(--text-secondary);
+    background: rgba(128, 128, 128, 0.4);
+    background-clip: content-box;
+  }
+
+  /* Global scrollbar for main content areas - auto-hide effect */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.15);
+    border-radius: 5px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(128, 128, 128, 0.35);
+    background-clip: content-box;
+  }
+
+  /* Dark mode scrollbar adjustments */
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    background-clip: content-box;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+    background-clip: content-box;
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    background-clip: content-box;
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+    background-clip: content-box;
+  }
+
+  /* Firefox dark mode */
+  .dark .custom-scrollbar {
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
   }
 
   /* Highlight Pulse Animation */

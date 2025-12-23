@@ -24,7 +24,7 @@ export function ExportManager({ shortcuts }) {
 
   const formatRaycastShortcut = (shortcut) => {
     const keys = shortcut.keys || shortcut.aliasText || 'N/A';
-    return `| ${keys} | ${shortcut.commandName || ''} | ${shortcut.extension || ''} | ${shortcut.notes || ''} |`;
+    return `| ${keys} | ${shortcut.commandName || ''} | ${shortcut.category || ''} | ${shortcut.notes || ''} |`;
   };
 
   const formatSystemShortcut = (shortcut) => {

@@ -223,6 +223,18 @@ export function useShortcutsStore() {
     }
   }, []);
   
+  // Helper to get active tab from entity type (for undo/redo tooltip positioning)
+  const getTabFromEntityType = (entityType) => {
+    switch (entityType) {
+      case 'leaderShortcuts': return 'leader';
+      case 'raycastShortcuts': return 'raycast';
+      case 'systemShortcuts': return 'system';
+      case 'leaderGroups': return 'leader';
+      case 'apps': return 'apps';
+      default: return 'leader';
+    }
+  };
+  
   // Create shortcut
   const createShortcut = useCallback(async (shortcutData, type) => {
     // Optimistic update
@@ -270,7 +282,7 @@ export function useShortcutsStore() {
         entityName: shortcutData.name || shortcutData.action,
         before: null,
         after: newItem
-      });
+      }, getTabFromEntityType(type));
       
       toast.success('Shortcut created successfully!');
       return newItem;
@@ -336,7 +348,7 @@ export function useShortcutsStore() {
         entityName: shortcutData.name || shortcutData.action || previousData.name,
         before: previousData,
         after: serverItem
-      });
+      }, getTabFromEntityType(type));
       
       toast.success('Shortcut updated successfully!');
       return serverItem;
@@ -347,6 +359,72 @@ export function useShortcutsStore() {
         [type]: prev[type].map(item => item.id === id ? previousData : item)
       }));
       toast.error(err.message || 'Failed to update shortcut');
+      throw err;
+    }
+  }, [data, getAuthHeaders, history, toast]);
+  
+  // Archive/Unarchive shortcut (toggle)
+  const archiveShortcut = useCallback(async (id, type, archived = true) => {
+    // Store previous state for rollback
+    const previousData = data[type]?.find(item => item.id === id);
+    if (!previousData) {
+      throw new Error('Item not found');
+    }
+    
+    // Optimistic update
+    const updatedItem = { ...previousData, archived };
+    setData(prev => ({
+      ...prev,
+      [type]: prev[type].map(item => item.id === id ? updatedItem : item)
+    }));
+    
+    try {
+      const response = await fetch(`${API_BASE}/${type}/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ ...previousData, archived })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to archive');
+      }
+      
+      const serverItem = await response.json();
+      
+      // Update with server response
+      setData(prev => ({
+        ...prev,
+        [type]: prev[type].map(item => item.id === id ? serverItem : item)
+      }));
+      
+      // Update cache
+      if (currentCacheKey.current) {
+        setData(current => {
+          saveToCache(currentCacheKey.current, current);
+          return current;
+        });
+      }
+      
+      // Log to history with specific archive/unarchive action
+      history.addChange({
+        action: archived ? 'archive' : 'unarchive',
+        entityType: type,
+        entityId: id,
+        entityName: previousData.name || previousData.commandName || previousData.action,
+        before: previousData,
+        after: serverItem
+      }, getTabFromEntityType(type));
+      
+      toast.success(archived ? 'Moved to Archive' : 'Restored from Archive');
+      return serverItem;
+    } catch (err) {
+      // Rollback on failure
+      setData(prev => ({
+        ...prev,
+        [type]: prev[type].map(item => item.id === id ? previousData : item)
+      }));
+      toast.error(err.message || 'Failed to archive shortcut');
       throw err;
     }
   }, [data, getAuthHeaders, history, toast]);
@@ -392,7 +470,7 @@ export function useShortcutsStore() {
         entityName: itemToDelete.name || itemToDelete.action,
         before: itemToDelete,
         after: null
-      });
+      }, getTabFromEntityType(type));
       
       toast.success('Shortcut deleted successfully!');
     } catch (err) {
@@ -449,7 +527,7 @@ export function useShortcutsStore() {
         entityName: groupData.name,
         before: null,
         after: newGroup
-      });
+      }, getTabFromEntityType('leaderGroups'));
       
       toast.success('Group created successfully!');
       return newGroup;
@@ -509,7 +587,7 @@ export function useShortcutsStore() {
         entityName: groupData.name || previousData.name,
         before: previousData,
         after: serverGroup
-      });
+      }, getTabFromEntityType('leaderGroups'));
       
       toast.success('Group updated successfully!');
       return serverGroup;
@@ -560,7 +638,7 @@ export function useShortcutsStore() {
         entityName: groupToDelete.name,
         before: groupToDelete,
         after: null
-      });
+      }, getTabFromEntityType('leaderGroups'));
       
       toast.success('Group deleted successfully!');
     } catch (err) {
@@ -616,7 +694,7 @@ export function useShortcutsStore() {
         entityName: appData.name,
         before: null,
         after: newApp
-      });
+      }, getTabFromEntityType('apps'));
       
       toast.success('App added to library!');
       return newApp;
@@ -676,7 +754,7 @@ export function useShortcutsStore() {
         entityName: appData.name || previousData.name,
         before: previousData,
         after: serverApp
-      });
+      }, getTabFromEntityType('apps'));
       
       toast.success('App updated successfully!');
       return serverApp;
@@ -727,7 +805,7 @@ export function useShortcutsStore() {
         entityName: appToDelete.name,
         before: appToDelete,
         after: null
-      });
+      }, getTabFromEntityType('apps'));
       
       toast.success('App removed from library!');
     } catch (err) {
@@ -795,6 +873,7 @@ export function useShortcutsStore() {
     createShortcut,
     updateShortcut,
     deleteShortcut,
+    archiveShortcut,
     createGroup,
     updateGroup,
     deleteGroup,

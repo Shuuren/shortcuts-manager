@@ -1,7 +1,7 @@
 import { GlassCard } from '../ui/GlassPanel';
-import { motion } from 'framer-motion';
-import { useMemo, useEffect, memo } from 'react';
-import { Monitor, AppWindow, Keyboard, Settings, Camera, Folder, Zap, Volume2, Layout, Terminal, Box, Edit2, Pencil } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useMemo, useEffect, useState, memo } from 'react';
+import { Monitor, AppWindow, Keyboard, Settings, Camera, Folder, Zap, Volume2, Layout, Terminal, Box, Edit2, Pencil, Archive, ChevronDown, ChevronRight } from 'lucide-react';
 // Icon mapping for categories (Removed, now using centralized config)
 import { getCategoryIcon } from '../../config/categories';
 import { getAppIcon } from '../../config/icons';
@@ -198,6 +198,9 @@ const KeyVisual = memo(function KeyVisual({ keys }) {
 });
 
 export function SystemView({ shortcuts, apps = [], onEdit, onEditGroup, highlightedShortcutId }) {
+    // Collapse state for archive section
+    const [archiveOpen, setArchiveOpen] = useState(false);
+    
     // Create app lookup map
     const appMap = useMemo(() => {
         return apps.reduce((acc, app) => {
@@ -222,8 +225,12 @@ export function SystemView({ shortcuts, apps = [], onEdit, onEditGroup, highligh
         }
     }, [highlightedShortcutId]);
 
-    // Dynamically group by category/functionality from the data
-    const groups = shortcuts.reduce((acc, curr) => {
+    // Separate active vs archived
+    const activeShortcuts = shortcuts.filter(s => !s.archived);
+    const archivedShortcuts = shortcuts.filter(s => s.archived);
+
+    // Dynamically group by category/functionality from the data (only active)
+    const groups = activeShortcuts.reduce((acc, curr) => {
         let cat = curr.category || 'Uncategorized';
         // Normalize to Title Case to merge "pasting" and "Pasting"
         cat = cat.charAt(0).toUpperCase() + cat.slice(1);
@@ -356,6 +363,101 @@ export function SystemView({ shortcuts, apps = [], onEdit, onEditGroup, highligh
                         </div>
                     );
                 })}
+                
+                {/* Archived Section */}
+                {archivedShortcuts.length > 0 && (
+                    <div className="mt-4 border-t border-[var(--glass-border)] pt-6">
+                        <button
+                            onClick={() => setArchiveOpen(!archiveOpen)}
+                            className="flex items-center gap-2 w-full text-left py-2 px-3 rounded-lg hover:bg-[var(--glass-bg-hover)] transition-colors mb-4"
+                        >
+                            {archiveOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                            <Archive size={18} className="text-amber-500" />
+                            <span className="text-xl font-bold text-[var(--text-secondary)]">Archive</span>
+                            <span className="text-xs bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-full text-amber-600 dark:text-amber-400">
+                                {archivedShortcuts.length}
+                            </span>
+                        </button>
+                        
+                        <AnimatePresence>
+                            {archiveOpen && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="flex flex-col gap-2">
+                                        {/* Desktop Header */}
+                                        <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                                            <div className="col-span-3">Key Combo</div>
+                                            <div className="col-span-3">App</div>
+                                            <div className="col-span-4">Action</div>
+                                            <div className="col-span-2">Notes</div>
+                                        </div>
+                                        
+                                        {archivedShortcuts.map((item, i) => {
+                                            const linkedApp = appMap[item.appId];
+                                            const appName = linkedApp?.name || item.appOrContext || '—';
+                                            const finalIconUrl = linkedApp?.iconUrl || item.iconUrl;
+                                            
+                                            return (
+                                                <motion.div
+                                                    key={item.id}
+                                                    id={`shortcut-${item.id}`}
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: i * 0.02 }}
+                                                >
+                                                    <GlassCard 
+                                                        className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center py-3 hover:bg-[var(--glass-bg-hover)] transition-colors cursor-pointer group relative opacity-50 hover:opacity-80 border-l-4 border-l-amber-500/30"
+                                                        onClick={() => onEdit && onEdit(item)}
+                                                    >
+                                                        {/* Archived badge */}
+                                                        <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 rounded-full text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/30 z-10">
+                                                            <Archive size={10} />
+                                                            Archived
+                                                        </div>
+                                                        
+                                                        {/* Mobile: Top Row with App and Action */}
+                                                        <div className="md:col-span-3 md:order-2 flex items-center gap-2">
+                                                            <div className="w-8 h-8 md:w-6 md:h-6 rounded bg-[var(--input-bg)] flex items-center justify-center flex-shrink-0 overflow-hidden grayscale">
+                                                                <AppIcon name={appName} customUrl={finalIconUrl} size={18} />
+                                                            </div>
+                                                            <div className="flex flex-col md:hidden">
+                                                                <span className="font-medium text-sm text-[var(--text-muted)]">{item.action}</span>
+                                                                <span className="text-xs text-[var(--text-muted)]">{appName}</span>
+                                                            </div>
+                                                            <span className="font-medium truncate hidden md:block text-[var(--text-muted)]">{appName}</span>
+                                                        </div>
+
+                                                        {/* Key Combo - Prominent on Mobile */}
+                                                        <div className="md:col-span-3 md:order-1 mt-2 md:mt-0 opacity-60">
+                                                            <KeyVisual keys={item.keys} />
+                                                        </div>
+
+                                                        {/* Desktop Action / Mobile Note */}
+                                                        <div className="md:col-span-4 md:order-3 text-[var(--text-muted)] hidden md:block">
+                                                            {item.action}
+                                                        </div>
+
+                                                        {/* Notes: Bottom on mobile */}
+                                                        <div className="md:col-span-2 md:order-4 text-xs text-[var(--text-muted)] line-clamp-2 md:pr-12 mt-1 md:mt-0">
+                                                            {item.notes || (
+                                                                <span className="md:hidden inline-block italic opacity-50">No notes</span>
+                                                            )}
+                                                        </div>
+                                                    </GlassCard>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                )}
             </div>
         </div>
     );

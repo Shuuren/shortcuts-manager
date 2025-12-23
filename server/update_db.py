@@ -120,10 +120,10 @@ def main():
 
     # 3. Process Raycast Shortcuts
     for sc in data['raycastShortcuts']:
-        # Try to match extension or commandName to app
-        ext = sc.get('extension')
-        if ext in context_to_id:
-             sc['appId'] = context_to_id[ext]
+        # Try to match category or commandName to app
+        cat = sc.get('category')
+        if cat in context_to_id:
+             sc['appId'] = context_to_id[cat]
              print(f"Linked Raycast {sc['id']} to {sc['appId']}")
         
         # Explicit known ones
