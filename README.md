@@ -2,6 +2,8 @@
 
 Shortcuts Manager keeps system, Raycast, and LeaderKey shortcuts in one place. Search them, edit them, check for conflicts, and export a Markdown reference when you need to share or review a setup.
 
+![Shortcuts Manager Leader Key view](https://raw.githubusercontent.com/Shuuren/Shuuren/main/assets/shortcuts-manager.jpg)
+
 ## What it does
 
 - Separate views for LeaderKey, Raycast, and macOS system shortcuts
