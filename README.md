@@ -1,16 +1,49 @@
-# React + Vite
+# Shortcuts Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Shortcuts Manager keeps system, Raycast, and LeaderKey shortcuts in one place. Search them, edit them, check for conflicts, and export a Markdown reference when you need to share or review a setup.
 
-Currently, two official plugins are available:
+## What it does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Separate views for LeaderKey, Raycast, and macOS system shortcuts
+- Groups, apps, categories, and global search
+- Shortcut conflict checking across Raycast and system shortcuts
+- Change history with undo and redo
+- Markdown export for documentation
+- Account-based access with per-user data
+- Light and dark themes with keyboard-friendly navigation
 
-## React Compiler
+## Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19 and Vite
+- Tailwind CSS and Framer Motion
+- Express and MongoDB with Mongoose
+- JWT authentication
 
-## Expanding the ESLint configuration
+## Run locally
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+You need Node.js 18 or newer. The frontend and API run as separate processes in development.
+
+Start the frontend:
+
+```sh
+bun install
+bun run dev
+```
+
+Start the API in a second terminal:
+
+```sh
+cd server
+bun install
+bun run dev
+```
+
+The API reads its settings from `server/.env`. Copy `server/.env.example` and provide the database connection string and JWT secret before using account features.
+
+## Deploy
+
+`render.yaml` describes a single Render web service. It builds the Vite frontend, serves it from Express, and exposes `/api/health` for health checks. Production deployments need `MONGODB_URI` and `JWT_SECRET` in the Render environment.
+
+## Status
+
+This is a personal project. The core interface and API are in place, while deployment and data setup still need project-specific configuration.
